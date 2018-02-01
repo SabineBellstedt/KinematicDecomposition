@@ -144,11 +144,26 @@ building mock rotational maps.
 '''
 Angles = AnglesFunction(X, Y)
 
-DiscRotation = (Max_vel_disc* Radius_Disc / (DiscRotationScale+ Radius_Disc) ) * np.sin(radian(Angles))
-BulgeRotation = (Max_vel_bulge* Radius_Bulge / (BulgeRotationScale+ Radius_Bulge) ) * np.sin(radian(Angles))
+# transforming the Angular term
+AngularTerm = []
+for angle in Angles:
+	if ((angle >= 0) & (angle <= 90)):
+		AngularTerm.append( np.sin(radian(angle - 90))+1 )
+	elif ((angle > 90) & (angle <= 180)):
+		AngularTerm.append( np.sin(radian(angle +90))+1 )
+	elif ((angle > 180) & (angle <= 270)):
+		AngularTerm.append( np.sin(radian(angle - 90))-1 )
+	elif ((angle > 270) & (angle <= 360)):
+		AngularTerm.append( np.sin(radian(angle + 90))-1 )
+
+AngularTerm = np.array(AngularTerm)
+
+DiscRotation = (Max_vel_disc* Radius_Disc / (DiscRotationScale+ Radius_Disc) ) * AngularTerm
+BulgeRotation = (Max_vel_bulge* Radius_Bulge / (BulgeRotationScale+ Radius_Bulge) ) * AngularTerm
 BulgeFraction = BulgeIntensity/(BulgeIntensity+DiscIntensity)
 DiscFraction = DiscIntensity/(BulgeIntensity+DiscIntensity)
 TotalRotation = (BulgeFraction * BulgeRotation + DiscFraction * DiscRotation)
+
 
 
 '''
@@ -179,10 +194,13 @@ BulgeDispersion = np.array(BulgeDispersion).reshape(sizeMapx,sizeMapy)
 TotalDispersion = np.array(TotalDispersion).reshape(sizeMapx,sizeMapy)
 Angles = np.array(Angles).reshape(sizeMapx,sizeMapy)
 
+
 TotalIntensity = BulgeIntensity + DiscIntensity
 
-BulgeRotationField = (BulgeIntensity * BulgeRotation)/np.max(BulgeIntensity)
-DiscRotationField = (DiscIntensity * DiscRotation)/np.max(DiscIntensity)
+# BulgeRotationField = (BulgeIntensity * BulgeRotation)/np.max(BulgeIntensity)
+# DiscRotationField = (DiscIntensity * DiscRotation)/np.max(DiscIntensity)
+BulgeRotationField = BulgeRotation
+DiscRotationField = DiscRotation
 
 MinimumRotation = np.min([np.min(BulgeRotationField), np.min(DiscRotationField), np.min(TotalRotation)])
 MaximumRotation = np.max([np.max(BulgeRotationField), np.max(DiscRotationField), np.max(TotalRotation)])
@@ -222,63 +240,67 @@ TotalIntensity_extrapolatedIntensity = BulgeIntensity_extrapolatedIntensity + Di
 
 # first do a coarse iteration to identify the half light radius
 percentageDiff = 100
+percentage = 0
 for testRadius in np.arange(50, 200, 20):
-	# first identify the pixel that is closest in radius to the test radius
-	testIntensity = TotalIntensity_extrapolatedIntensity[np.where((Y_extrapolatedIntensity == 0) & \
-		(X_extrapolatedIntensity > (testRadius - 1)) & (X_extrapolatedIntensity < (testRadius + 1)))][0]
-	# now identifying the radius of the associated intensity along the semiminor axis
-	# will have to iterate to identify the closest value, given the finite resolution
-	diff = 100000
-	for testMinorRadius in np.arange(5, testRadius+10, 2):
-		minorIntensity = TotalIntensity_extrapolatedIntensity[np.where((X_extrapolatedIntensity == 0) & (Y_extrapolatedIntensity == testMinorRadius))]
-		if abs(testIntensity - minorIntensity) < diff:
-			diff = abs(testIntensity - minorIntensity)
-			minorRadius = testMinorRadius
-	testEllipticity = 1.-(float(minorRadius)/testRadius)
-
-	referenceRadius = []
-	for ii in range(len(X_extrapolatedIntensity)):
-		referenceRadius.append(radius(X_extrapolatedIntensity[ii], Y_extrapolatedIntensity[ii], 0, 0, phi, testEllipticity))
-	referenceRadius = np.array(referenceRadius)
-
-	testEffectiveRadius = referenceRadius[np.where( (Y_extrapolatedIntensity == 0) & (X_extrapolatedIntensity == testRadius) )]
-	percentage = np.sum(TotalIntensity_extrapolatedIntensity[np.where(referenceRadius <= testEffectiveRadius)]) / np.sum(TotalIntensity_extrapolatedIntensity)
-	print 'testRadius:', testRadius, 'percentage:', percentage
-	if abs(percentage - 0.5) < percentageDiff:
-		percentageDiff = abs(percentage - 0.5)
-		coarseRadius = testRadius
+	if percentage < 0.55: # don't bother continuing this process for radii that are larger than Re
+		# first identify the pixel that is closest in radius to the test radius
+		testIntensity = TotalIntensity_extrapolatedIntensity[np.where((Y_extrapolatedIntensity == 0) & \
+			(X_extrapolatedIntensity > (testRadius - 1)) & (X_extrapolatedIntensity < (testRadius + 1)))][0]
+		# now identifying the radius of the associated intensity along the semiminor axis
+		# will have to iterate to identify the closest value, given the finite resolution
+		diff = 100000
+		for testMinorRadius in np.arange(5, testRadius, 4):
+			minorIntensity = TotalIntensity_extrapolatedIntensity[np.where((X_extrapolatedIntensity == 0) & (Y_extrapolatedIntensity == testMinorRadius))]
+			if abs(testIntensity - minorIntensity) < diff:
+				diff = abs(testIntensity - minorIntensity)
+				minorRadius = testMinorRadius
+		testEllipticity = 1.-(float(minorRadius)/testRadius)
+	
+		referenceRadius = []
+		for ii in range(len(X_extrapolatedIntensity)):
+			referenceRadius.append(radius(X_extrapolatedIntensity[ii], Y_extrapolatedIntensity[ii], 0, 0, phi, testEllipticity))
+		referenceRadius = np.array(referenceRadius)
+	
+		testEffectiveRadius = referenceRadius[np.where( (Y_extrapolatedIntensity == 0) & (X_extrapolatedIntensity == testRadius) )]
+		percentage = np.sum(TotalIntensity_extrapolatedIntensity[np.where(referenceRadius <= testEffectiveRadius)]) / np.sum(TotalIntensity_extrapolatedIntensity)
+		print 'testRadius:', testRadius, 'percentage:', percentage
+		if abs(percentage - 0.5) < percentageDiff:
+			percentageDiff = abs(percentage - 0.5)
+			coarseRadius = testRadius
 
 # now to do the exact same thing but on a finer scale
 percentageDiff = 100
-for testRadius in np.arange(coarseRadius-10, coarseRadius+10, 2):
-	# first identify the pixel that is closest in radius to the test radius
-	testIntensity = TotalIntensity_extrapolatedIntensity[np.where((Y_extrapolatedIntensity == 0) & \
-		(X_extrapolatedIntensity > (testRadius - 1)) & (X_extrapolatedIntensity < (testRadius + 1)))][0]
-	# now identifying the radius of the associated intensity along the semiminor axis
-	# will have to iterate to identify the closest value, given the finite resolution
-	diff = 100000
-	for testMinorRadius in np.arange(5, testRadius, 1):
-		minorIntensity = TotalIntensity_extrapolatedIntensity[np.where((X_extrapolatedIntensity == 0) & (Y_extrapolatedIntensity == testMinorRadius))]
-		if abs(testIntensity - minorIntensity) < diff:
-			diff = abs(testIntensity - minorIntensity)
-			minorRadius = testMinorRadius
-	testEllipticity = 1.-(float(minorRadius)/testRadius)
+percentage = 0
+for testRadius in np.arange(coarseRadius-10, coarseRadius+10, 5):
+	if percentage < 0.55: # don't bother continuing this process for radii that are larger than Re
+		# first identify the pixel that is closest in radius to the test radius
+		testIntensity = TotalIntensity_extrapolatedIntensity[np.where((Y_extrapolatedIntensity == 0) & \
+			(X_extrapolatedIntensity > (testRadius - 1)) & (X_extrapolatedIntensity < (testRadius + 1)))][0]
+		# now identifying the radius of the associated intensity along the semiminor axis
+		# will have to iterate to identify the closest value, given the finite resolution
+		diff = 100000
+		for testMinorRadius in np.arange(5, testRadius, 2):
+			minorIntensity = TotalIntensity_extrapolatedIntensity[np.where((X_extrapolatedIntensity == 0) & (Y_extrapolatedIntensity == testMinorRadius))]
+			if abs(testIntensity - minorIntensity) < diff:
+				diff = abs(testIntensity - minorIntensity)
+				minorRadius = testMinorRadius
+		testEllipticity = 1.-(float(minorRadius)/testRadius)
+		
+		referenceRadius = []
+		for ii in range(len(X_extrapolatedIntensity)):
+			referenceRadius.append(radius(X_extrapolatedIntensity[ii], Y_extrapolatedIntensity[ii], 0, 0, phi, testEllipticity))
+		referenceRadius = np.array(referenceRadius)
 	
-	referenceRadius = []
-	for ii in range(len(X_extrapolatedIntensity)):
-		referenceRadius.append(radius(X_extrapolatedIntensity[ii], Y_extrapolatedIntensity[ii], 0, 0, phi, testEllipticity))
-	referenceRadius = np.array(referenceRadius)
-
-	testEffectiveRadius = referenceRadius[np.where( (Y_extrapolatedIntensity == 0) & (X_extrapolatedIntensity == testRadius) )][0]
-	percentage = np.sum(TotalIntensity_extrapolatedIntensity[np.where(referenceRadius <= testEffectiveRadius)]) / np.sum(TotalIntensity_extrapolatedIntensity)
-	print 'testRadius:', testRadius, 'percentage:', percentage, 'ellipticity:', testEllipticity
-	if abs(percentage - 0.5) < percentageDiff:
-		percentageDiff = abs(percentage - 0.5)
-		Ellipticity = testEllipticity
-		EffectiveRadius = testEffectiveRadius
+		testEffectiveRadius = referenceRadius[np.where( (Y_extrapolatedIntensity == 0) & (X_extrapolatedIntensity == testRadius) )][0]
+		percentage = np.sum(TotalIntensity_extrapolatedIntensity[np.where(referenceRadius <= testEffectiveRadius)]) / np.sum(TotalIntensity_extrapolatedIntensity)
+		print 'testRadius:', testRadius, 'percentage:', percentage, 'ellipticity:', testEllipticity
+		if abs(percentage - 0.5) < percentageDiff:
+			percentageDiff = abs(percentage - 0.5)
+			Ellipticity = testEllipticity
+			EffectiveRadius = testEffectiveRadius
 
 print 'Observed Ellipticity:', ObservedEllipticity, 'model Ellipticity:', Ellipticity
-print 'Observed Effective Radius', EffectiveRadius, 'model Effectove Radius:', EffectiveRadius
+print 'Observed Effective Radius', Reff_Spitzer[GalName], 'model Effective Radius:', EffectiveRadius
 
 
 
@@ -325,5 +347,34 @@ ax1.legend(handles, labels, loc=4, fontsize=8, scatterpoints = 1)
 
 plt.subplots_adjust(hspace = 0., wspace = 0.2)
 OutputFilename = DropboxDirectory+'Dropbox/PhD_Analysis/Analysis/Angular Momentum/Mock_Kinematics/'+str(GalName)+'/'+str(GalName)+'_OutputDispersionProfile.pdf'
+plt.savefig(OutputFilename)
+plt.close()
+
+fig=plt.figure(figsize=(5, 5))
+ax1=fig.add_subplot(111)
+
+x = np.arange(0, 140, 2)
+# using a gNFW approach to describe the velocity dispersion
+y_bulge = BulgeIntensityFunction(I_Bulge, x, Re_Bulge, n)
+y_disc = DiscIntensityFunction(I_Disc, x, h)
+
+
+y_bulge[np.where(y_bulge < 0)] = 0
+y_disc[np.where(y_disc < 0)] = 0
+
+ax1.plot(x, y_bulge, c = 'orange', label = 'Bulge')
+ax1.plot(x, y_disc, c = 'b', label = 'Disc')
+ax1.plot(x, y_disc + y_bulge, c = 'k', label = 'Total')
+
+ax1.set_yscale('log')
+
+ax1.set_xlabel(r'$r$')
+ax1.set_ylabel(r'$\sigma$ [km/s]')
+
+handles, labels=ax1.get_legend_handles_labels()
+ax1.legend(handles, labels, loc=4, fontsize=8, scatterpoints = 1)
+
+plt.subplots_adjust(hspace = 0., wspace = 0.2)
+OutputFilename = DropboxDirectory+'Dropbox/PhD_Analysis/Analysis/Angular Momentum/Mock_Kinematics/'+str(GalName)+'/'+str(GalName)+'_IntensityProfile.pdf'
 plt.savefig(OutputFilename)
 plt.close()

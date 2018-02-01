@@ -31,7 +31,7 @@ from Sabine_Define import *
 from KinematicProducer_def import *
 
 
-GalName = 'NGC1023'
+GalName = 'NGC7457'
 # instead of sampling a given range, I now sample the same pixels as given for an observed galaxy. 
 ObservedGalaxyInput_Path = os.path.abspath(DropboxDirectory+'Dropbox/PhD_Analysis/Analysis/Angular Momentum/Mock_Kinematics')+'/'
 X, Y, Vel_Observed, VelErr_Observed, VelDisp_Observed, VelDispErr_Observed = krigingFileReadAll(ObservedGalaxyInput_Path, GalName)
@@ -49,17 +49,17 @@ Re_Bulge_lower, Re_Bulge_upper = 10, 100
 BulgeRotationScale_lower, BulgeRotationScale_upper = 1, 50
 Max_vel_bulge_lower, Max_vel_bulge_upper = -300, 300
 CentralBulgeDispersion_lower, CentralBulgeDispersion_upper = 0, 100 # dispersion at R_e/2
-alpha_Bulge_lower, alpha_Bulge_upper = 0.1, 2 # power law slope
+alpha_Bulge_lower, alpha_Bulge_upper = 0, 0.2 # power law slope
 # beta_Bulge_lower, beta_Bulge_upper = -5, 0 # slope of velocity dispersion profile
 # gamma_Bulge_lower, gamma_Bulge_upper = -2, 0
 
 # ellipticity_disc_lower, ellipticity_disc_upper = 0.5, 1.0
 I_Disc_lower, I_Disc_upper = 0, 40
-h_lower, h_upper = 0, 100
+h_lower, h_upper = 0, 50
 DiscRotationScale_lower, DiscRotationScale_upper = 1, 50
 Max_vel_disc_lower, Max_vel_disc_upper = -400, 400
 CentralDiscDispersion_lower, CentralDiscDispersion_upper = 0, 100 # dispersion at R_e/2
-alpha_Disc_lower, alpha_Disc_upper = 0.1, 2 # power law slope
+alpha_Disc_lower, alpha_Disc_upper = 0, 0.2 # power law slope
 # beta_Disc_lower, beta_Disc_upper = -5, 0 # slope of velocity dispersion profile
 # gamma_Disc_lower, gamma_Disc_upper = -2, 0
 

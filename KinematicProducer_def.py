@@ -53,7 +53,7 @@ def AnglesFunction(X, Y):
 
 
 def IntensityPlottingFunction(X, Y, BulgeIntensity, DiscIntensity, TotalIntensity, sizeMapx, sizeMapy, phi, Ellipticity_measured, HalfLightRadius, Linewidth_parameter = 0.8, filename = 'BulgeDiscTest.pdf'):
-	fig=plt.figure(figsize=(11, 5))
+	fig=plt.figure(figsize=(11, 3))
 	ax1=fig.add_subplot(131, aspect = 'equal')
 	ax2=fig.add_subplot(132, aspect = 'equal')
 	ax3=fig.add_subplot(133, aspect = 'equal')
@@ -85,12 +85,14 @@ def IntensityPlottingFunction(X, Y, BulgeIntensity, DiscIntensity, TotalIntensit
 
 def RotationPlottingFunction(X, Y, BulgeRotationField, DiscRotationField, TotalRotation, ObservedRotation, MinimumRotation, MaximumRotation, \
 	HalfLightRadius, AxialRatio, Linewidth_parameter = 0.8, filename = 'KinematicTest.pdf'):
-	fig=plt.figure(figsize=(11, 5))
+	fig=plt.figure(figsize=(11, 3))
 	ax1=fig.add_subplot(131, aspect = 'equal')
 	ax2=fig.add_subplot(132, aspect = 'equal')
 	ax3=fig.add_subplot(133, aspect = 'equal')
 	ax1.pcolor(X, Y, BulgeRotationField, cmap = 'jet', vmin=MinimumRotation, vmax=MaximumRotation)
 	ax1.contour(X, Y, BulgeRotationField, colors='k', linewidths = Linewidth_parameter)
+	CS1 = ax1.contour(X, Y, BulgeRotationField, colors='k', linewidths = Linewidth_parameter)
+	ax1.clabel(CS1, fontsize=7, inline=1)
 	ax1.set_title('Bulge Rotation')
 	ax2.pcolor(X, Y, DiscRotationField, cmap = 'jet', vmin=MinimumRotation, vmax=MaximumRotation)
 	CS2 = ax2.contour(X, Y, DiscRotationField, colors='k', linewidths = Linewidth_parameter)
@@ -112,7 +114,7 @@ def RotationPlottingFunction(X, Y, BulgeRotationField, DiscRotationField, TotalR
 	plt.savefig(filename)
 	plt.close()
 
-	fig=plt.figure(figsize=(5, 5))
+	fig=plt.figure(figsize=(5, 3))
 	ax1=fig.add_subplot(111, aspect = 'equal')
 	ax1.pcolor(X, Y, ObservedRotation-TotalRotation, cmap = 'coolwarm', vmin=-100, vmax=100)
 	CS1 = ax1.contour(X, Y, ObservedRotation-TotalRotation, colors='k', linewidths = Linewidth_parameter)
@@ -131,19 +133,23 @@ def RotationPlottingFunction(X, Y, BulgeRotationField, DiscRotationField, TotalR
 
 def DispersionPlottingFunction(X, Y, BulgeDispersion, DiscDispersion, TotalDispersion, ObservedDispersion, MinimumDispersion, MaximumDispersion, \
 	HalfLightRadius, AxialRatio, Linewidth_parameter = 0.8, filename = 'DispersionTest.pdf'):
-	fig=plt.figure(figsize=(11, 5))
+	fig=plt.figure(figsize=(11, 3))
 	ax1=fig.add_subplot(131, aspect = 'equal')
 	ax2=fig.add_subplot(132, aspect = 'equal')
 	ax3=fig.add_subplot(133, aspect = 'equal')
 	ax1.pcolor(X, Y, BulgeDispersion, cmap = 'jet', vmin=MinimumDispersion, vmax=MaximumDispersion)
 	ax1.contour(X, Y, BulgeDispersion, colors='k', linewidths = Linewidth_parameter)
 	ax1.set_title('Bulge Dispersion')
+	CS1 = ax1.contour(X, Y, BulgeDispersion, colors='k', linewidths = Linewidth_parameter)
+	ax1.clabel(CS1, fontsize=7, inline=1)
 	ax2.pcolor(X, Y, DiscDispersion, cmap = 'jet', vmin=MinimumDispersion, vmax=MaximumDispersion)
 	ax2.contour(X, Y, DiscDispersion, colors='k', linewidths = Linewidth_parameter)
 	ax2.set_title('Disc Dispersion')
+	CS2 = ax2.contour(X, Y, DiscDispersion, colors='k', linewidths = Linewidth_parameter)
+	ax2.clabel(CS2, fontsize=7, inline=1)
 	ax3.pcolor(X, Y, TotalDispersion, cmap = 'jet', vmin=MinimumDispersion, vmax=MaximumDispersion)
-	CS = ax3.contour(X, Y, TotalDispersion, colors='k', linewidths = Linewidth_parameter)
-	ax3.clabel(CS, fontsize=7, inline=1)
+	CS3 = ax3.contour(X, Y, TotalDispersion, colors='k', linewidths = Linewidth_parameter)
+	ax3.clabel(CS3, fontsize=7, inline=1)
 	ax3.set_title('Total Dispersion')
 	radii = [1, 2, 3, 4]
 	ellipses = [Ellipse(xy=[0,0], width=(2.*jj*HalfLightRadius/np.sqrt(AxialRatio)), 
@@ -157,7 +163,7 @@ def DispersionPlottingFunction(X, Y, BulgeDispersion, DiscDispersion, TotalDispe
 	plt.savefig(filename)
 	plt.close()
 
-	fig=plt.figure(figsize=(5, 5))
+	fig=plt.figure(figsize=(5, 3))
 	ax1=fig.add_subplot(111, aspect = 'equal')
 	ax1.pcolor(X, Y, ObservedDispersion-TotalDispersion, cmap = 'coolwarm', vmin=-50, vmax=50)
 	CS1 = ax1.contour(X, Y, ObservedDispersion-TotalDispersion, colors='k', linewidths = Linewidth_parameter)
@@ -215,9 +221,22 @@ def lnlike_RotationAndDispersion(theta, *args):
 			building mock rotational maps. 
 			'''
 			Angles = AnglesFunction(X, Y)
+			# transforming the Angular term
+			AngularTerm = []
+			for angle in Angles:
+				if ((angle >= 0) & (angle <= 90)):
+					AngularTerm.append( np.sin(radian(angle - 90))+1 )
+				elif ((angle > 90) & (angle <= 180)):
+					AngularTerm.append( np.sin(radian(angle +90))+1 )
+				elif ((angle > 180) & (angle <= 270)):
+					AngularTerm.append( np.sin(radian(angle - 90))-1 )
+				elif ((angle > 270) & (angle <= 360)):
+					AngularTerm.append( np.sin(radian(angle + 90))-1 )
 			
-			DiscRotation = (Max_vel_disc* Radius_Disc / (DiscRotationScale + Radius_Disc) ) * np.sin(radian(Angles))
-			BulgeRotation = (Max_vel_bulge* Radius_Bulge / (BulgeRotationScale + Radius_Bulge) ) * np.sin(radian(Angles))
+			AngularTerm = np.array(AngularTerm)
+			
+			DiscRotation = (Max_vel_disc* Radius_Disc / (DiscRotationScale + Radius_Disc) ) * AngularTerm
+			BulgeRotation = (Max_vel_bulge* Radius_Bulge / (BulgeRotationScale + Radius_Bulge) ) * AngularTerm
 			BulgeFraction = BulgeIntensity/(BulgeIntensity+DiscIntensity)
 			DiscFraction = DiscIntensity/(BulgeIntensity+DiscIntensity)
 			TotalRotation = (BulgeFraction * BulgeRotation + DiscFraction * DiscRotation)
