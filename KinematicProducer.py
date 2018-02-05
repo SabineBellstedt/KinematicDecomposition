@@ -31,24 +31,24 @@ from Sabine_Define import *
 from KinematicProducer_def import *
 
 
-GalName = 'NGC7457'
+GalName = 'NGC3377'
 # instead of sampling a given range, I now sample the same pixels as given for an observed galaxy. 
 ObservedGalaxyInput_Path = os.path.abspath(DropboxDirectory+'Dropbox/PhD_Analysis/Analysis/Angular Momentum/Mock_Kinematics')+'/'
 X, Y, Vel_Observed, VelErr_Observed, VelDisp_Observed, VelDispErr_Observed = krigingFileReadAll(ObservedGalaxyInput_Path, GalName)
 	
 t0 = time.time()
 
-ndim, nwalkers = 14, 200 # NUMBER OF WALKERS
+ndim, nwalkers = 12, 200 # NUMBER OF WALKERS
 
 
 # setting the upper and lower bounds on the prior ranges of each parameter
-ellipticity_bulge_lower, ellipticity_bulge_upper = 0.0, 0.5 # we want this to be fairly round...
+ellipticity_bulge_lower, ellipticity_bulge_upper = 0.0, 0.8 # we want this to be fairly round...
 I_Bulge_lower, I_Bulge_upper = 0, 10000
-n_lower, n_upper = 3., 4.
-Re_Bulge_lower, Re_Bulge_upper = 10, 100
+# n_lower, n_upper = 3., 4.
+# Re_Bulge_lower, Re_Bulge_upper = 10, 100
 BulgeRotationScale_lower, BulgeRotationScale_upper = 1, 50
-Max_vel_bulge_lower, Max_vel_bulge_upper = -300, 300
-CentralBulgeDispersion_lower, CentralBulgeDispersion_upper = 0, 100 # dispersion at R_e/2
+Max_vel_bulge_lower, Max_vel_bulge_upper = -50, 50 # don't expect the bulge component to be rotating
+CentralBulgeDispersion_lower, CentralBulgeDispersion_upper = 0, 200 # dispersion at R_e/2
 alpha_Bulge_lower, alpha_Bulge_upper = 0, 0.2 # power law slope
 # beta_Bulge_lower, beta_Bulge_upper = -5, 0 # slope of velocity dispersion profile
 # gamma_Bulge_lower, gamma_Bulge_upper = -2, 0
@@ -58,7 +58,7 @@ I_Disc_lower, I_Disc_upper = 0, 40
 h_lower, h_upper = 0, 50
 DiscRotationScale_lower, DiscRotationScale_upper = 1, 50
 Max_vel_disc_lower, Max_vel_disc_upper = -400, 400
-CentralDiscDispersion_lower, CentralDiscDispersion_upper = 0, 100 # dispersion at R_e/2
+CentralDiscDispersion_lower, CentralDiscDispersion_upper = 0, 200 # dispersion at R_e/2
 alpha_Disc_lower, alpha_Disc_upper = 0, 0.2 # power law slope
 # beta_Disc_lower, beta_Disc_upper = -5, 0 # slope of velocity dispersion profile
 # gamma_Disc_lower, gamma_Disc_upper = -2, 0
@@ -69,8 +69,8 @@ pos_RotationAndDispersion = []
 for ii in np.arange(nwalkers):  
 	ellipticity_bulge_init = np.random.uniform(low=ellipticity_bulge_lower, high=ellipticity_bulge_upper) 
 	I_Bulge_init = np.random.uniform(low=I_Bulge_lower, high=I_Bulge_upper)
-	n_init = np.random.uniform(low=n_lower, high=n_upper) 
-	Re_Bulge_init = np.random.uniform(low=Re_Bulge_lower, high=Re_Bulge_upper) 
+	# n_init = np.random.uniform(low=n_lower, high=n_upper) 
+	# Re_Bulge_init = np.random.uniform(low=Re_Bulge_lower, high=Re_Bulge_upper) 
 	BulgeRotationScale_init = np.random.uniform(low=BulgeRotationScale_lower, high=BulgeRotationScale_upper) 
 	Max_vel_bulge_init = np.random.uniform(low=Max_vel_bulge_lower, high=Max_vel_bulge_upper) 
 	CentralBulgeDispersion_init = np.random.uniform(low=CentralBulgeDispersion_lower, high=CentralBulgeDispersion_upper) 
@@ -88,14 +88,17 @@ for ii in np.arange(nwalkers):
 	# beta_Disc_init = np.random.uniform(low=beta_Disc_lower, high=beta_Disc_upper) 
 	# gamma_Disc_init = np.random.uniform(low=gamma_Disc_lower, high=gamma_Disc_upper) 
 
-	pos_RotationAndDispersion.append([ellipticity_bulge_init, I_Bulge_init, n_init, Re_Bulge_init, BulgeRotationScale_init, \
+	pos_RotationAndDispersion.append([ellipticity_bulge_init, I_Bulge_init, \
+		# Re_Bulge_init, \
+		BulgeRotationScale_init, \
 		Max_vel_bulge_init, CentralBulgeDispersion_init, alpha_Bulge_init,  \
 		# ellipticity_disc_init, \
 		I_Disc_init, h_init, DiscRotationScale_init, Max_vel_disc_init, CentralDiscDispersion_init, \
 		alpha_Disc_init])
 
 # print pos_RotationAndDispersion
-boundaries = [ellipticity_bulge_lower, ellipticity_bulge_upper, I_Bulge_lower, I_Bulge_upper, n_lower, n_upper, Re_Bulge_lower, Re_Bulge_upper, \
+boundaries = [ellipticity_bulge_lower, ellipticity_bulge_upper, I_Bulge_lower, I_Bulge_upper, \
+	# n_lower, n_upper, Re_Bulge_lower, Re_Bulge_upper, \
 	BulgeRotationScale_lower, BulgeRotationScale_upper, Max_vel_bulge_lower, Max_vel_bulge_upper, \
 	CentralBulgeDispersion_lower, CentralBulgeDispersion_upper, alpha_Bulge_lower, alpha_Bulge_upper, \
 	# ellipticity_disc_lower, ellipticity_disc_upper, \
@@ -105,11 +108,13 @@ boundaries = [ellipticity_bulge_lower, ellipticity_bulge_upper, I_Bulge_lower, I
 
 EffectiveRadius = Reff_Spitzer[GalName]
 ObservedEllipticity = 1 - b_a[GalName]
+n_bulge = SersicIndex_Bulge[GalName]
+Re_Bulge = EffectiveRadius_Bulge[GalName]
 
 # Setup MCMC sampler
 import emcee
 sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob_RotationAndDispersion,
-                  args=(boundaries, X, Y, Vel_Observed, VelErr_Observed, VelDisp_Observed, VelDispErr_Observed, EffectiveRadius, ObservedEllipticity),
+                  args=(boundaries, X, Y, Vel_Observed, VelErr_Observed, VelDisp_Observed, VelDispErr_Observed, EffectiveRadius, ObservedEllipticity, n_bulge, Re_Bulge),
                   threads=16) #Threads gives the number of processors to use
 
 ############ implementing a burn-in period ###########

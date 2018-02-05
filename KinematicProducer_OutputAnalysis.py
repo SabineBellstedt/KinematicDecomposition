@@ -40,7 +40,7 @@ def parameterExtractor(inputDict, name):
 	print 'Parameter extraction successful for', name
 	return value, lower, upper
 
-GalName = 'NGC1023'
+GalName = 'NGC3377'
 
 OutputFilename = DropboxDirectory+'Dropbox/PhD_Analysis/Analysis/Angular Momentum/Mock_Kinematics/'+str(GalName)+'/'+str(GalName)+'_MCMCOutput.dat'
 
@@ -62,8 +62,8 @@ fileIn.close()
 
 params = [r"$\epsilon_b$", \
 		r"$I_b$", \
-		r"$n$", \
-		r"$R_{e,b}$", \
+		# r"$n$", \
+		# r"$R_{e,b}$", \
 		"BulgeRotScale", \
 		r"$v_b$", \
 		r"$\sigma_{c,b}$", \
@@ -92,8 +92,8 @@ fig = c.plotter.plot(figsize = 'PAGE', filename = triangleFilename)
 
 ellipticity_bulge, ellipticity_bulge_lower, ellipticity_bulge_upper = parameterExtractor(c.analysis.get_summary(), '$\epsilon_b$')
 I_Bulge, I_Bulge_lower, I_Bulge_upper = parameterExtractor(c.analysis.get_summary(), '$I_b$')
-n, n_lower, n_upper = parameterExtractor(c.analysis.get_summary(), '$n$')
-Re_Bulge, Re_Bulge_lower, Re_Bulge_upper = parameterExtractor(c.analysis.get_summary(), '$R_{e,b}$')
+# n, n_lower, n_upper = parameterExtractor(c.analysis.get_summary(), '$n$')
+# Re_Bulge, Re_Bulge_lower, Re_Bulge_upper = parameterExtractor(c.analysis.get_summary(), '$R_{e,b}$')
 BulgeRotationScale, BulgeRotationScale_lower, BulgeRotationScale_upper = parameterExtractor(c.analysis.get_summary(), 'BulgeRotScale')
 Max_vel_bulge, Max_vel_bulge_lower, Max_vel_bulge_upper = parameterExtractor(c.analysis.get_summary(), '$v_b$')
 CentralBulgeDispersion, CentralBulgeDispersion_lower, CentralBulgeDispersion_upper = parameterExtractor(c.analysis.get_summary(), r'$\sigma_{c,b}$')

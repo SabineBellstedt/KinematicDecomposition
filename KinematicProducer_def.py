@@ -182,10 +182,11 @@ def DispersionPlottingFunction(X, Y, BulgeDispersion, DiscDispersion, TotalDispe
 
 def lnlike_RotationAndDispersion(theta, *args):
 	try:
-		ellipticity_bulge, I_Bulge, n, Re_Bulge, BulgeRotationScale, Max_vel_bulge, CentralBulgeDispersion, alpha_Bulge,  \
+		ellipticity_bulge, I_Bulge, BulgeRotationScale, Max_vel_bulge, CentralBulgeDispersion, alpha_Bulge,  \
 		I_Disc, h, DiscRotationScale, Max_vel_disc, CentralDiscDispersion, alpha_Disc = theta
 		tmpInputArgs = args[0]
-		(X, Y, Vel_Observed, VelErr_Observed, VelDisp_Observed, VelDispErr_Observed, EffectiveRadius, ObservedEllipticity) = tmpInputArgs
+		(X, Y, Vel_Observed, VelErr_Observed, VelDisp_Observed, VelDispErr_Observed, \
+			EffectiveRadius, ObservedEllipticity, n, Re_Bulge) = tmpInputArgs
 		PA = 90*np.pi/180
 		phi=(PA-np.pi/2.0) # accounting for the different 0 PA convention in astronomy to mathematics
 
@@ -273,12 +274,12 @@ def lnlike_RotationAndDispersion(theta, *args):
 
 
 def lnprior_RotationAndDispersion(theta, *args): #p(m, b, f)
-    ellipticity_bulge, I_Bulge, n, Re_Bulge, BulgeRotationScale, Max_vel_bulge, CentralBulgeDispersion, alpha_Bulge,\
+    ellipticity_bulge, I_Bulge, BulgeRotationScale, Max_vel_bulge, CentralBulgeDispersion, alpha_Bulge,\
     I_Disc, h, DiscRotationScale, Max_vel_disc, CentralDiscDispersion, alpha_Disc = theta
 
     tmpInputArgs = args[0] 
-    (ellipticity_bulge_lower, ellipticity_bulge_upper, I_Bulge_lower, I_Bulge_upper, n_lower, n_upper, Re_Bulge_lower, \
-    	Re_Bulge_upper, BulgeRotationScale_lower, BulgeRotationScale_upper, Max_vel_bulge_lower, Max_vel_bulge_upper, CentralBulgeDispersion_lower, CentralBulgeDispersion_upper, \
+    (ellipticity_bulge_lower, ellipticity_bulge_upper, I_Bulge_lower, I_Bulge_upper, BulgeRotationScale_lower, \
+    	BulgeRotationScale_upper, Max_vel_bulge_lower, Max_vel_bulge_upper, CentralBulgeDispersion_lower, CentralBulgeDispersion_upper, \
     	alpha_Bulge_lower, alpha_Bulge_upper,  \
     	# ellipticity_disc_lower, ellipticity_disc_upper, \
     	I_Disc_lower, I_Disc_upper, h_lower, h_upper, \
@@ -288,8 +289,7 @@ def lnprior_RotationAndDispersion(theta, *args): #p(m, b, f)
     	) = tmpInputArgs
 
     if ((ellipticity_bulge_lower <= ellipticity_bulge <= ellipticity_bulge_upper) and \
-    	(I_Bulge_lower <= I_Bulge <= I_Bulge_upper) and (n_lower <= n <= n_upper) and \
-    	(Re_Bulge_lower <= Re_Bulge <= Re_Bulge_upper) and (BulgeRotationScale_lower <= BulgeRotationScale <= BulgeRotationScale_upper) and \
+    	(I_Bulge_lower <= I_Bulge <= I_Bulge_upper) and (BulgeRotationScale_lower <= BulgeRotationScale <= BulgeRotationScale_upper) and \
     	(Max_vel_bulge_lower <= Max_vel_bulge <= Max_vel_bulge_upper) and \
     	(CentralBulgeDispersion_lower <= CentralBulgeDispersion <= CentralBulgeDispersion_upper) and \
     	(alpha_Bulge_lower <= alpha_Bulge <= alpha_Bulge_upper) and  \
