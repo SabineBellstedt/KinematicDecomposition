@@ -42,7 +42,10 @@ def parameterExtractor(inputDict, name):
 
 GalName = 'NGC3377'
 
-OutputFilename = DropboxDirectory+'Dropbox/PhD_Analysis/Analysis/Angular Momentum/Mock_Kinematics/'+str(GalName)+'/'+str(GalName)+'_MCMCOutput.dat'
+OutputFileLocation = DropboxDirectory+'Dropbox/PhD_Analysis/Analysis/Angular Momentum/Mock_Kinematics/'+str(GalName)+'/'
+ObservedGalaxyInput_Path = os.path.abspath(DropboxDirectory+'Dropbox/PhD_Analysis/Analysis/Angular Momentum/Mock_Kinematics')+'/'
+
+OutputFilename = OutputFileLocation+str(GalName)+'_MCMCOutput.dat'
 
 # now looking at the output of the MCMC and analysing it. 
 # depending on how old the output file is, I may or may not have saved the acceptance fraction. 
@@ -80,7 +83,7 @@ params = [r"$\epsilon_b$", \
 		# r"$\beta_d$"]
 		# r"$\gamma_d$"]
 
-triangleFilename = DropboxDirectory+'Dropbox/PhD_Analysis/Analysis/Angular Momentum/Mock_Kinematics/'+str(GalName)+'/'+str(GalName)+'_MCMCOutput_triangle.pdf'
+triangleFilename = OutputFileLocation+str(GalName)+'_MCMCOutput_triangle.pdf'
 
 c = ChainConsumer().add_chain(flatchain, parameters=params)
 c.configure(statistics='max_shortest', summary=True)
@@ -111,7 +114,7 @@ alpha_Disc, alpha_Disc_lower, alpha_Disc_upper = parameterExtractor(c.analysis.g
 # beta_Disc, beta_Disc_lower, beta_Disc_upper = parameterExtractor(c.analysis.get_summary(), r'$\beta_d$')
 # gamma_Disc, gamma_Disc_lower, gamma_Disc_upper = parameterExtractor(c.analysis.get_summary(), r'$\gamma_d$')
 
-ObservedGalaxyInput_Path = os.path.abspath(DropboxDirectory+'Dropbox/PhD_Analysis/Analysis/Angular Momentum/Mock_Kinematics')+'/'
+
 X, Y, Vel_Observed, VelErr_Observed, VelDisp_Observed, VelDispErr_Observed = krigingFileReadAll(ObservedGalaxyInput_Path, GalName)
 
 PA = 90*np.pi/180
@@ -119,6 +122,23 @@ phi=(PA-np.pi/2.0) # accounting for the different 0 PA convention in astronomy t
 
 EffectiveRadius = Reff_Spitzer[GalName]
 ObservedEllipticity = 1 - b_a[GalName]
+n = SersicIndex_Bulge[GalName]
+Re_Bulge = EffectiveRadius_Bulge[GalName]
+
+# saving all the extracted parameters to an output file
+Parameters = np.array([ellipticity_bulge, ellipticity_bulge_lower, ellipticity_bulge_upper, I_Bulge, I_Bulge_lower, I_Bulge_upper, \
+BulgeRotationScale, BulgeRotationScale_lower, BulgeRotationScale_upper, Max_vel_bulge, Max_vel_bulge_lower, Max_vel_bulge_upper, \
+CentralBulgeDispersion, CentralBulgeDispersion_lower, CentralBulgeDispersion_upper, alpha_Bulge, alpha_Bulge_lower, alpha_Bulge_upper, \
+I_Disc, I_Disc_lower, I_Disc_upper, h, h_lower, h_upper, DiscRotationScale, DiscRotationScale_lower, DiscRotationScale_upper, \
+Max_vel_disc, Max_vel_disc_lower, Max_vel_disc_upper, CentralDiscDispersion, CentralDiscDispersion_lower, CentralDiscDispersion_upper, \
+alpha_Disc, alpha_Disc_lower, alpha_Disc_upper])
+Parameter_Header = '# e_bulge (- +), \tI_Bulge (- +), \tBulgeRotationScale (- +), \tMax_vel_bulge (- +), \tCentralBulgeDispersion (- +), \talpha_Bulge (- +), \
+\tI_Disc (- +), \th (- +), \tDiscRotationScale (- +), \tMax_vel_disc (- +), \tCentralDiscDispersion (- +), \talpha_Disc (- +)'
+
+np.savetxt(OutputFileLocation+GalName+'_Parameters.txt', np.c_(Parameters), header = Parameter_Header)
+
+
+# recreating the kinematics in order to make plots. 
 
 BulgeIntensity_ellipticityTest = BulgeIntensityFunction(I_Bulge, EffectiveRadius, Re_Bulge, n)
 DiscIntensity_ellipticityTest = DiscIntensityFunction(I_Disc, EffectiveRadius, h)
@@ -306,9 +326,6 @@ print 'Observed Effective Radius', Reff_Spitzer[GalName], 'model Effective Radiu
 
 Linewidth_parameter = 0.8
 
-filenamePrefix = DropboxDirectory+'Dropbox/PhD_Analysis/Analysis/Angular Momentum/Mock_Kinematics/'+str(GalName)+'/'
-
-ObservedGalaxyInput_Path = os.path.abspath(DropboxDirectory+'Dropbox/PhD_Analysis/Analysis/Angular Momentum/Mock_Kinematics')+'/'
 X_Observed, Y_Observed, Vel_Observed, VelErr_Observed, VelDisp_Observed, VelDispErr_Observed = krigingFileReadAll(ObservedGalaxyInput_Path, GalName)
 
 Vel_Observed = np.array(Vel_Observed).reshape(sizeMapx,sizeMapy)
@@ -346,7 +363,7 @@ handles, labels=ax1.get_legend_handles_labels()
 ax1.legend(handles, labels, loc=4, fontsize=8, scatterpoints = 1)
 
 plt.subplots_adjust(hspace = 0., wspace = 0.2)
-OutputFilename = DropboxDirectory+'Dropbox/PhD_Analysis/Analysis/Angular Momentum/Mock_Kinematics/'+str(GalName)+'/'+str(GalName)+'_OutputDispersionProfile.pdf'
+OutputFilename = OutputFileLocation+str(GalName)+'_OutputDispersionProfile.pdf'
 plt.savefig(OutputFilename)
 plt.close()
 
@@ -375,6 +392,6 @@ handles, labels=ax1.get_legend_handles_labels()
 ax1.legend(handles, labels, loc=4, fontsize=8, scatterpoints = 1)
 
 plt.subplots_adjust(hspace = 0., wspace = 0.2)
-OutputFilename = DropboxDirectory+'Dropbox/PhD_Analysis/Analysis/Angular Momentum/Mock_Kinematics/'+str(GalName)+'/'+str(GalName)+'_IntensityProfile.pdf'
+OutputFilename = OutputFileLocation+str(GalName)+'_IntensityProfile.pdf'
 plt.savefig(OutputFilename)
 plt.close()
