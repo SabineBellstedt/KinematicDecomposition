@@ -29,20 +29,20 @@ def krigingFileReadAll(Kriging_path, GalName):
 	return (RA, Dec, Vel, VelErr, VelDisp, VelDispErr)
 
 def BulgeIntensityFunction(I_Bulge, Radius_Bulge, Re_Bulge, n):
-	'''Here the intensity is calculated at the effective radius'''
 	k = 1.9992*n-0.3271
-	# return I_Bulge * np.exp(-k * ((Radius_Bulge/Re_Bulge)**(1./n))-1) # in terms of luminosity
-	return I_Bulge + (2.5*k/np.log(10)) * ((Radius_Bulge/Re_Bulge)**(1/n) - 1)
+	return I_Bulge * np.exp(-k * ((Radius_Bulge/Re_Bulge)**(1./n)))
 
 def DiscIntensityFunction(I_Disc, Radius_Disc, Re_Disc):
-	'''Here the intensity is calculated at the centre of the galaxy'''
-	h = Re_Disc / 1.678 # scale length
-	# return I_Disc * np.exp(-Radius_Disc/h) # in terms of luminosity
-	return I_Disc + (2.5/np.log(10)) * (Radius_Disc/h)
+	h = Re_Disc/1.678
+	return I_Disc * np.exp(-Radius_Disc/h)
 
 def ComponentRadiusFunction(X, Y, phi, ellipticity_bulge, ellipticity_disc):
-	Radius_Bulge = radiusArray(X, Y, phi, ellipticity_bulge)
-	Radius_Disc = radiusArray(X, Y, phi, ellipticity_disc)
+	Radius_Bulge, Radius_Disc = [], []
+	for ii in range(len(X)):
+		Radius_Bulge.append(radius(X[ii], Y[ii], 0, 0, phi, ellipticity_bulge))
+		Radius_Disc.append(radius(X[ii], Y[ii], 0, 0, phi, ellipticity_disc))
+	Radius_Bulge = np.array(Radius_Bulge)
+	Radius_Disc = np.array(Radius_Disc)
 	return (Radius_Bulge, Radius_Disc)
 
 def AnglesFunction(X, Y):
@@ -58,14 +58,14 @@ def IntensityPlottingFunction(X, Y, BulgeIntensity, DiscIntensity, TotalIntensit
 	ax1=fig.add_subplot(131, aspect = 'equal')
 	ax2=fig.add_subplot(132, aspect = 'equal')
 	ax3=fig.add_subplot(133, aspect = 'equal')
-	ax1.pcolor(X, Y, BulgeIntensity, cmap = 'jet', vmin=-2, vmax=np.max(TotalIntensity))
-	ax1.contour(X, Y, BulgeIntensity, colors='k', linewidths = Linewidth_parameter)
+	ax1.pcolor(X, Y, np.log10(BulgeIntensity), cmap = 'jet', vmin=-2, vmax=np.max(np.log10(TotalIntensity)))
+	ax1.contour(X, Y, np.log10(BulgeIntensity), colors='k', linewidths = Linewidth_parameter)
 	ax1.set_title('Bulge')
-	ax2.pcolor(X, Y, DiscIntensity, cmap = 'jet', vmin=-2, vmax=np.max(TotalIntensity))
-	ax2.contour(X, Y, DiscIntensity, colors='k', linewidths = Linewidth_parameter)
+	ax2.pcolor(X, Y, np.log10(DiscIntensity), cmap = 'jet', vmin=-2, vmax=np.max(np.log10(TotalIntensity)))
+	ax2.contour(X, Y, np.log10(DiscIntensity), colors='k', linewidths = Linewidth_parameter)
 	ax2.set_title('Disc')
-	ax3.pcolor(X, Y, TotalIntensity, cmap = 'jet', vmin=-2, vmax=np.max(TotalIntensity))
-	cs = ax3.contour(X, Y, TotalIntensity, colors='k', linewidths = Linewidth_parameter)
+	ax3.pcolor(X, Y, np.log10(TotalIntensity), cmap = 'jet', vmin=-2, vmax=np.max(np.log10(TotalIntensity)))
+	cs = ax3.contour(X, Y, np.log10(TotalIntensity), colors='k', linewidths = Linewidth_parameter)
 	ax3.set_title('Total')
 	
 	AxialRatio = 1 - Ellipticity_measured
@@ -117,7 +117,7 @@ def RotationPlottingFunction(X, Y, BulgeRotationField, DiscRotationField, TotalR
 
 	fig=plt.figure(figsize=(5, 3))
 	ax1=fig.add_subplot(111, aspect = 'equal')
-	ax1.pcolor(X, Y, ObservedRotation-TotalRotation, cmap = 'coolwarm', vmin=-50, vmax=50)
+	ax1.pcolor(X, Y, ObservedRotation-TotalRotation, cmap = 'coolwarm', vmin=-100, vmax=100)
 	CS1 = ax1.contour(X, Y, ObservedRotation-TotalRotation, colors='k', linewidths = Linewidth_parameter)
 	ax1.clabel(CS1, fontsize=7, inline=1)
 	ax1.set_title('Rotation Residual')
@@ -166,7 +166,7 @@ def DispersionPlottingFunction(X, Y, BulgeDispersion, DiscDispersion, TotalDispe
 
 	fig=plt.figure(figsize=(5, 3))
 	ax1=fig.add_subplot(111, aspect = 'equal')
-	ax1.pcolor(X, Y, ObservedDispersion-TotalDispersion, cmap = 'coolwarm', vmin=-30, vmax=30)
+	ax1.pcolor(X, Y, ObservedDispersion-TotalDispersion, cmap = 'coolwarm', vmin=-50, vmax=50)
 	CS1 = ax1.contour(X, Y, ObservedDispersion-TotalDispersion, colors='k', linewidths = Linewidth_parameter)
 	ax1.clabel(CS1, fontsize=7, inline=1)
 	ax1.set_title('Dispersion Residual')
@@ -198,13 +198,12 @@ def lnlike_RotationAndDispersion(theta, *args):
 		BulgeIntensity_ellipticityTest = BulgeIntensityFunction(I_Bulge, EffectiveRadius, Re_Bulge, n)
 		DiscIntensity_ellipticityTest = DiscIntensityFunction(I_Disc, EffectiveRadius, Re_Disc)
 
-		BulgeFraction_ellipticityTest = 10**BulgeIntensity_ellipticityTest / (10**BulgeIntensity_ellipticityTest + 10**DiscIntensity_ellipticityTest)
-		DiscFraction_ellipticityTest = 10**DiscIntensity_ellipticityTest / (10**BulgeIntensity_ellipticityTest + 10**DiscIntensity_ellipticityTest)
+		BulgeFraction_ellipticityTest = BulgeIntensity_ellipticityTest / (BulgeIntensity_ellipticityTest + DiscIntensity_ellipticityTest)
+		DiscFraction_ellipticityTest = DiscIntensity_ellipticityTest / (BulgeIntensity_ellipticityTest + DiscIntensity_ellipticityTest)
 
 		ellipticity_disc = (ObservedEllipticity - BulgeFraction_ellipticityTest*ellipticity_bulge) / DiscFraction_ellipticityTest
 		# print 'bulge ellipticity:', ellipticity_bulge, 'disc ellipticity:', ellipticity_disc
-		# print 'bulge fraction:', BulgeFraction_ellipticityTest, 'disc fraction:', DiscFraction_ellipticityTest
-		if (ellipticity_disc > 1) | (ellipticity_disc < 0) | (np.isfinite(ellipticity_disc) == False):
+		if (ellipticity_disc > 1) | (ellipticity_disc < 0):
 			Chi2Total = np.inf
 			# print 'run exited'
 		else:		

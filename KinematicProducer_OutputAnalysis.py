@@ -40,7 +40,7 @@ def parameterExtractor(inputDict, name):
 	print 'Parameter extraction successful for', name
 	return value, lower, upper
 
-GalName = 'NGC3608'
+GalName = 'NGC3377'
 
 OutputFileLocation = DropboxDirectory+'Dropbox/PhD_Analysis/Analysis/Angular Momentum/Mock_Kinematics/'+str(GalName)+'/'
 ObservedGalaxyInput_Path = os.path.abspath(DropboxDirectory+'Dropbox/PhD_Analysis/Analysis/Angular Momentum/Mock_Kinematics')+'/'
@@ -48,6 +48,17 @@ ObservedGalaxyInput_Path = os.path.abspath(DropboxDirectory+'Dropbox/PhD_Analysi
 OutputFilename = OutputFileLocation+str(GalName)+'_MCMCOutput.dat'
 
 # now looking at the output of the MCMC and analysing it. 
+# depending on how old the output file is, I may or may not have saved the acceptance fraction. 
+# try:
+# 	fileIn = open(OutputFilename, 'rb')
+# 	chain, flatchain, lnprobability, flatlnprobability, acceptanceFraction = pickle.load(fileIn) 
+# 	# I don't want to bother running this code if the acceptance fraction is zero. 
+# 	# if acceptanceFraction == 0.:
+# 	# 	print 'Acceptance Fraction is zero. Output is garbage!'
+# 	# 	sys.exit(0)
+# 	# else:
+# 	# 	print 'Acceptance Fraction:', acceptanceFraction
+# except:
 fileIn = open(OutputFilename, 'rb')
 chain, flatchain, lnprobability, flatlnprobability, = pickle.load(fileIn) 
 fileIn.close()
@@ -60,12 +71,17 @@ params = [r"$\epsilon_b$", \
 		r"$v_b$", \
 		r"$\sigma_{c,b}$", \
 		r"$\alpha_b$", \
+		# r"$\beta_b$", \
+		# r"$\gamma_b$", \
+		# r"$\epsilon_d$", \
 		r"$I_d$", \
 		r"$R_{e,d}$", 
 		"DiscRotScale", \
 		r"$v_d$", \
 		r"$\sigma_{c,d}$", \
 		r"$\alpha_d$"]
+		# r"$\beta_d$"]
+		# r"$\gamma_d$"]
 
 triangleFilename = OutputFileLocation+str(GalName)+'_MCMCOutput_triangle.pdf'
 
@@ -85,6 +101,8 @@ BulgeRotationScale, BulgeRotationScale_lower, BulgeRotationScale_upper = paramet
 Max_vel_bulge, Max_vel_bulge_lower, Max_vel_bulge_upper = parameterExtractor(c.analysis.get_summary(), '$v_b$')
 CentralBulgeDispersion, CentralBulgeDispersion_lower, CentralBulgeDispersion_upper = parameterExtractor(c.analysis.get_summary(), r'$\sigma_{c,b}$')
 alpha_Bulge, alpha_Bulge_lower, alpha_Bulge_upper = parameterExtractor(c.analysis.get_summary(), r'$\alpha_b$')
+# beta_Bulge, beta_Bulge_lower, beta_Bulge_upper = parameterExtractor(c.analysis.get_summary(), r'$\beta_b$')
+# gamma_Bulge, gamma_Bulge_lower, gamma_Bulge_upper = parameterExtractor(c.analysis.get_summary(), r'$\gamma_b$')
 
 # ellipticity_disc, ellipticity_disc_lower, ellipticity_disc_upper = parameterExtractor(c.analysis.get_summary(), '$\epsilon_d$')
 I_Disc, I_Disc_lower, I_Disc_upper = parameterExtractor(c.analysis.get_summary(), '$I_d$')
@@ -93,6 +111,8 @@ DiscRotationScale, DiscRotationScale_lower, DiscRotationScale_upper = parameterE
 Max_vel_disc, Max_vel_disc_lower, Max_vel_disc_upper = parameterExtractor(c.analysis.get_summary(), '$v_d$')
 CentralDiscDispersion, CentralDiscDispersion_lower, CentralDiscDispersion_upper = parameterExtractor(c.analysis.get_summary(), r'$\sigma_{c,d}$')
 alpha_Disc, alpha_Disc_lower, alpha_Disc_upper = parameterExtractor(c.analysis.get_summary(), r'$\alpha_d$')
+# beta_Disc, beta_Disc_lower, beta_Disc_upper = parameterExtractor(c.analysis.get_summary(), r'$\beta_d$')
+# gamma_Disc, gamma_Disc_lower, gamma_Disc_upper = parameterExtractor(c.analysis.get_summary(), r'$\gamma_d$')
 
 
 X, Y, Vel_Observed, VelErr_Observed, VelDisp_Observed, VelDispErr_Observed = krigingFileReadAll(ObservedGalaxyInput_Path, GalName)
@@ -106,16 +126,16 @@ n = SersicIndex_Bulge[GalName]
 Re_Bulge = EffectiveRadius_Bulge[GalName]
 
 # saving all the extracted parameters to an output file
-Parameters = np.c_[ellipticity_bulge, ellipticity_bulge_lower, ellipticity_bulge_upper, I_Bulge, I_Bulge_lower, I_Bulge_upper, \
+Parameters = np.array([ellipticity_bulge, ellipticity_bulge_lower, ellipticity_bulge_upper, I_Bulge, I_Bulge_lower, I_Bulge_upper, \
 BulgeRotationScale, BulgeRotationScale_lower, BulgeRotationScale_upper, Max_vel_bulge, Max_vel_bulge_lower, Max_vel_bulge_upper, \
 CentralBulgeDispersion, CentralBulgeDispersion_lower, CentralBulgeDispersion_upper, alpha_Bulge, alpha_Bulge_lower, alpha_Bulge_upper, \
 I_Disc, I_Disc_lower, I_Disc_upper, Re_Disc, Re_Disc_lower, Re_Disc_upper, DiscRotationScale, DiscRotationScale_lower, DiscRotationScale_upper, \
 Max_vel_disc, Max_vel_disc_lower, Max_vel_disc_upper, CentralDiscDispersion, CentralDiscDispersion_lower, CentralDiscDispersion_upper, \
-alpha_Disc, alpha_Disc_lower, alpha_Disc_upper]
-Parameter_Header = 'e_bulge (- +), \tI_Bulge (- +), \tBulgeRotationScale (- +), \tMax_vel_bulge (- +), \tCentralBulgeDispersion (- +), \talpha_Bulge (- +), \
+alpha_Disc, alpha_Disc_lower, alpha_Disc_upper])
+Parameter_Header = '# e_bulge (- +), \tI_Bulge (- +), \tBulgeRotationScale (- +), \tMax_vel_bulge (- +), \tCentralBulgeDispersion (- +), \talpha_Bulge (- +), \
 \tI_Disc (- +), \tRe_Disc (- +), \tDiscRotationScale (- +), \tMax_vel_disc (- +), \tCentralDiscDispersion (- +), \talpha_Disc (- +)'
 
-np.savetxt(OutputFileLocation+GalName+'_Parameters.txt', Parameters, header = Parameter_Header)
+np.savetxt(OutputFileLocation+GalName+'_Parameters.txt', np.c_(Parameters), header = Parameter_Header)
 
 
 # recreating the kinematics in order to make plots. 
@@ -123,8 +143,8 @@ np.savetxt(OutputFileLocation+GalName+'_Parameters.txt', Parameters, header = Pa
 BulgeIntensity_ellipticityTest = BulgeIntensityFunction(I_Bulge, EffectiveRadius, Re_Bulge, n)
 DiscIntensity_ellipticityTest = DiscIntensityFunction(I_Disc, EffectiveRadius, Re_Disc)
 
-BulgeFraction_ellipticityTest = 10**BulgeIntensity_ellipticityTest / (10**BulgeIntensity_ellipticityTest + 10**DiscIntensity_ellipticityTest)
-DiscFraction_ellipticityTest = 10**DiscIntensity_ellipticityTest / (10**BulgeIntensity_ellipticityTest + 10**DiscIntensity_ellipticityTest)
+BulgeFraction_ellipticityTest = BulgeIntensity_ellipticityTest / (BulgeIntensity_ellipticityTest + DiscIntensity_ellipticityTest)
+DiscFraction_ellipticityTest = DiscIntensity_ellipticityTest / (BulgeIntensity_ellipticityTest + DiscIntensity_ellipticityTest)
 
 ellipticity_disc = (ObservedEllipticity - BulgeFraction_ellipticityTest*ellipticity_bulge) / DiscFraction_ellipticityTest
 Radius_Bulge, Radius_Disc = ComponentRadiusFunction(X, Y, phi, ellipticity_bulge, ellipticity_disc)
@@ -230,7 +250,7 @@ Y_extrapolatedIntensity = np.array(Y_extrapolatedIntensity)
 Radius_Bulge_extrapolatedIntensity, Radius_Disc_extrapolatedIntensity = \
 	ComponentRadiusFunction(X_extrapolatedIntensity, Y_extrapolatedIntensity, phi, ellipticity_bulge, ellipticity_disc)
 BulgeIntensity_extrapolatedIntensity = BulgeIntensityFunction(I_Bulge, Radius_Bulge_extrapolatedIntensity, Re_Bulge, n)
-DiscIntensity_extrapolatedIntensity = DiscIntensityFunction(I_Disc, Radius_Disc_extrapolatedIntensity, Re_Disc)
+DiscIntensity_extrapolatedIntensity = DiscIntensityFunction(I_Disc, Radius_Disc_extrapolatedIntensity, h)
 
 # calculating the bulge/total ratio
 print 'Bulge/Total:', np.sum(BulgeIntensity_extrapolatedIntensity) / ( np.sum(BulgeIntensity_extrapolatedIntensity) + np.sum(DiscIntensity_extrapolatedIntensity) )
@@ -242,21 +262,24 @@ TotalIntensity_extrapolatedIntensity = BulgeIntensity_extrapolatedIntensity + Di
 percentageDiff = 100
 percentage = 0
 for testRadius in np.arange(50, 200, 20):
-	if percentage < 0.60: # don't bother continuing this process for radii that are larger than Re
+	if percentage < 0.55: # don't bother continuing this process for radii that are larger than Re
 		# first identify the pixel that is closest in radius to the test radius
 		testIntensity = TotalIntensity_extrapolatedIntensity[np.where((Y_extrapolatedIntensity == 0) & \
 			(X_extrapolatedIntensity > (testRadius - 1)) & (X_extrapolatedIntensity < (testRadius + 1)))][0]
 		# now identifying the radius of the associated intensity along the semiminor axis
 		# will have to iterate to identify the closest value, given the finite resolution
 		diff = 100000
-		for testMinorRadius in np.arange(5, testRadius, 2):
+		for testMinorRadius in np.arange(5, testRadius, 4):
 			minorIntensity = TotalIntensity_extrapolatedIntensity[np.where((X_extrapolatedIntensity == 0) & (Y_extrapolatedIntensity == testMinorRadius))]
 			if abs(testIntensity - minorIntensity) < diff:
 				diff = abs(testIntensity - minorIntensity)
 				minorRadius = testMinorRadius
 		testEllipticity = 1.-(float(minorRadius)/testRadius)
 	
-		referenceRadius = radiusArray(X_extrapolatedIntensity, Y_extrapolatedIntensity, phi, testEllipticity)
+		referenceRadius = []
+		for ii in range(len(X_extrapolatedIntensity)):
+			referenceRadius.append(radius(X_extrapolatedIntensity[ii], Y_extrapolatedIntensity[ii], 0, 0, phi, testEllipticity))
+		referenceRadius = np.array(referenceRadius)
 	
 		testEffectiveRadius = referenceRadius[np.where( (Y_extrapolatedIntensity == 0) & (X_extrapolatedIntensity == testRadius) )]
 		percentage = np.sum(TotalIntensity_extrapolatedIntensity[np.where(referenceRadius <= testEffectiveRadius)]) / np.sum(TotalIntensity_extrapolatedIntensity)
@@ -268,7 +291,7 @@ for testRadius in np.arange(50, 200, 20):
 # now to do the exact same thing but on a finer scale
 percentageDiff = 100
 percentage = 0
-for testRadius in np.arange(coarseRadius-10, coarseRadius+10, 2):
+for testRadius in np.arange(coarseRadius-10, coarseRadius+10, 5):
 	if percentage < 0.55: # don't bother continuing this process for radii that are larger than Re
 		# first identify the pixel that is closest in radius to the test radius
 		testIntensity = TotalIntensity_extrapolatedIntensity[np.where((Y_extrapolatedIntensity == 0) & \
@@ -283,7 +306,10 @@ for testRadius in np.arange(coarseRadius-10, coarseRadius+10, 2):
 				minorRadius = testMinorRadius
 		testEllipticity = 1.-(float(minorRadius)/testRadius)
 		
-		referenceRadius = radiusArray(X_extrapolatedIntensity, Y_extrapolatedIntensity, phi, testEllipticity)
+		referenceRadius = []
+		for ii in range(len(X_extrapolatedIntensity)):
+			referenceRadius.append(radius(X_extrapolatedIntensity[ii], Y_extrapolatedIntensity[ii], 0, 0, phi, testEllipticity))
+		referenceRadius = np.array(referenceRadius)
 	
 		testEffectiveRadius = referenceRadius[np.where( (Y_extrapolatedIntensity == 0) & (X_extrapolatedIntensity == testRadius) )][0]
 		percentage = np.sum(TotalIntensity_extrapolatedIntensity[np.where(referenceRadius <= testEffectiveRadius)]) / np.sum(TotalIntensity_extrapolatedIntensity)
@@ -306,11 +332,11 @@ Vel_Observed = np.array(Vel_Observed).reshape(sizeMapx,sizeMapy)
 VelDisp_Observed = np.array(VelDisp_Observed).reshape(sizeMapx,sizeMapy)
 
 IntensityPlottingFunction(X, Y, BulgeIntensity, DiscIntensity, TotalIntensity, sizeMapx, sizeMapy, phi, Ellipticity, \
-	EffectiveRadius, filename = OutputFileLocation+str(GalName)+'_MCMCOutput_Photometry.pdf')
+	EffectiveRadius, filename = filenamePrefix+str(GalName)+'_MCMCOutput_Photometry.pdf')
 RotationPlottingFunction(X, Y, BulgeRotationField, DiscRotationField, TotalRotation, Vel_Observed, MinimumRotation, MaximumRotation, \
-	EffectiveRadius, 1-Ellipticity, filename = OutputFileLocation+str(GalName)+'_MCMCOutput_Velocity.pdf')
+	EffectiveRadius, 1-Ellipticity, filename = filenamePrefix+str(GalName)+'_MCMCOutput_Velocity.pdf')
 DispersionPlottingFunction(X, Y, BulgeDispersion, DiscDispersion, TotalDispersion, VelDisp_Observed, MinimumDispersion, MaximumDispersion, \
-	EffectiveRadius, 1-Ellipticity, filename = OutputFileLocation+str(GalName)+'_MCMCOutput_Dispersion.pdf')
+	EffectiveRadius, 1-Ellipticity, filename = filenamePrefix+str(GalName)+'_MCMCOutput_Dispersion.pdf')
 
 
 
