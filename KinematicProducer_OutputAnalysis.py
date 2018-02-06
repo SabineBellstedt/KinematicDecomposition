@@ -64,7 +64,7 @@ chain, flatchain, lnprobability, flatlnprobability, = pickle.load(fileIn)
 fileIn.close()
 
 params = [r"$\epsilon_b$", \
-		r"$I_b$", \
+		r"$\log(I_b)$", \
 		# r"$n$", \
 		# r"$R_{e,b}$", \
 		"BulgeRotScale", \
@@ -74,7 +74,7 @@ params = [r"$\epsilon_b$", \
 		# r"$\beta_b$", \
 		# r"$\gamma_b$", \
 		# r"$\epsilon_d$", \
-		r"$I_d$", \
+		r"$\log(I_d)$", \
 		r"$R_{e,d}$", 
 		"DiscRotScale", \
 		r"$v_d$", \
@@ -94,7 +94,7 @@ fig = c.plotter.plot(figsize = 'PAGE', filename = triangleFilename)
 
 
 ellipticity_bulge, ellipticity_bulge_lower, ellipticity_bulge_upper = parameterExtractor(c.analysis.get_summary(), '$\epsilon_b$')
-I_Bulge, I_Bulge_lower, I_Bulge_upper = parameterExtractor(c.analysis.get_summary(), '$I_b$')
+log_I_Bulge, log_I_Bulge_lower, log_I_Bulge_upper = parameterExtractor(c.analysis.get_summary(), r'$\log(I_b)$')
 # n, n_lower, n_upper = parameterExtractor(c.analysis.get_summary(), '$n$')
 # Re_Bulge, Re_Bulge_lower, Re_Bulge_upper = parameterExtractor(c.analysis.get_summary(), '$R_{e,b}$')
 BulgeRotationScale, BulgeRotationScale_lower, BulgeRotationScale_upper = parameterExtractor(c.analysis.get_summary(), 'BulgeRotScale')
@@ -105,7 +105,7 @@ alpha_Bulge, alpha_Bulge_lower, alpha_Bulge_upper = parameterExtractor(c.analysi
 # gamma_Bulge, gamma_Bulge_lower, gamma_Bulge_upper = parameterExtractor(c.analysis.get_summary(), r'$\gamma_b$')
 
 # ellipticity_disc, ellipticity_disc_lower, ellipticity_disc_upper = parameterExtractor(c.analysis.get_summary(), '$\epsilon_d$')
-I_Disc, I_Disc_lower, I_Disc_upper = parameterExtractor(c.analysis.get_summary(), '$I_d$')
+log_I_Disc, log_I_Disc_lower, log_I_Disc_upper = parameterExtractor(c.analysis.get_summary(), r'$\log(I_d)$')
 Re_Disc, Re_Disc_lower, Re_Disc_upper = parameterExtractor(c.analysis.get_summary(), '$R_{e,d}$')
 DiscRotationScale, DiscRotationScale_lower, DiscRotationScale_upper = parameterExtractor(c.analysis.get_summary(), 'DiscRotScale')
 Max_vel_disc, Max_vel_disc_lower, Max_vel_disc_upper = parameterExtractor(c.analysis.get_summary(), '$v_d$')
@@ -126,22 +126,22 @@ n = SersicIndex_Bulge[GalName]
 Re_Bulge = EffectiveRadius_Bulge[GalName]
 
 # saving all the extracted parameters to an output file
-Parameters = np.array([ellipticity_bulge, ellipticity_bulge_lower, ellipticity_bulge_upper, I_Bulge, I_Bulge_lower, I_Bulge_upper, \
+Parameters = np.array([ellipticity_bulge, ellipticity_bulge_lower, ellipticity_bulge_upper, log_I_Bulge, log_I_Bulge_lower, log_I_Bulge_upper, \
 BulgeRotationScale, BulgeRotationScale_lower, BulgeRotationScale_upper, Max_vel_bulge, Max_vel_bulge_lower, Max_vel_bulge_upper, \
 CentralBulgeDispersion, CentralBulgeDispersion_lower, CentralBulgeDispersion_upper, alpha_Bulge, alpha_Bulge_lower, alpha_Bulge_upper, \
-I_Disc, I_Disc_lower, I_Disc_upper, Re_Disc, Re_Disc_lower, Re_Disc_upper, DiscRotationScale, DiscRotationScale_lower, DiscRotationScale_upper, \
+log_I_Disc, log_I_Disc_lower, log_I_Disc_upper, Re_Disc, Re_Disc_lower, Re_Disc_upper, DiscRotationScale, DiscRotationScale_lower, DiscRotationScale_upper, \
 Max_vel_disc, Max_vel_disc_lower, Max_vel_disc_upper, CentralDiscDispersion, CentralDiscDispersion_lower, CentralDiscDispersion_upper, \
 alpha_Disc, alpha_Disc_lower, alpha_Disc_upper])
-Parameter_Header = '# e_bulge (- +), \tI_Bulge (- +), \tBulgeRotationScale (- +), \tMax_vel_bulge (- +), \tCentralBulgeDispersion (- +), \talpha_Bulge (- +), \
-\tI_Disc (- +), \tRe_Disc (- +), \tDiscRotationScale (- +), \tMax_vel_disc (- +), \tCentralDiscDispersion (- +), \talpha_Disc (- +)'
+Parameter_Header = '# e_bulge (- +), \tlog_I_Bulge (- +), \tBulgeRotationScale (- +), \tMax_vel_bulge (- +), \tCentralBulgeDispersion (- +), \talpha_Bulge (- +), \
+\tlog_I_Disc (- +), \tRe_Disc (- +), \tDiscRotationScale (- +), \tMax_vel_disc (- +), \tCentralDiscDispersion (- +), \talpha_Disc (- +)'
 
 np.savetxt(OutputFileLocation+GalName+'_Parameters.txt', np.c_(Parameters), header = Parameter_Header)
 
 
 # recreating the kinematics in order to make plots. 
 
-BulgeIntensity_ellipticityTest = BulgeIntensityFunction(I_Bulge, EffectiveRadius, Re_Bulge, n)
-DiscIntensity_ellipticityTest = DiscIntensityFunction(I_Disc, EffectiveRadius, Re_Disc)
+BulgeIntensity_ellipticityTest = BulgeIntensityFunction(log_I_Bulge, EffectiveRadius, Re_Bulge, n)
+DiscIntensity_ellipticityTest = DiscIntensityFunction(log_I_Disc, EffectiveRadius, Re_Disc)
 
 BulgeFraction_ellipticityTest = BulgeIntensity_ellipticityTest / (BulgeIntensity_ellipticityTest + DiscIntensity_ellipticityTest)
 DiscFraction_ellipticityTest = DiscIntensity_ellipticityTest / (BulgeIntensity_ellipticityTest + DiscIntensity_ellipticityTest)
@@ -152,12 +152,12 @@ Radius_Bulge, Radius_Disc = ComponentRadiusFunction(X, Y, phi, ellipticity_bulge
 '''
 set up the phyical distribution of points from a bulge component with a sersic profile
 '''
-BulgeIntensity = BulgeIntensityFunction(I_Bulge, Radius_Bulge, Re_Bulge, n)
+BulgeIntensity = BulgeIntensityFunction(log_I_Bulge, Radius_Bulge, Re_Bulge, n)
 
 '''
 set up the phyical distribution of points from a disc component with an exponential profile
 '''
-DiscIntensity = DiscIntensityFunction(I_Disc, Radius_Disc, Re_Disc)
+DiscIntensity = DiscIntensityFunction(log_I_Disc, Radius_Disc, Re_Disc)
 
 '''
 building mock rotational maps. 
@@ -372,8 +372,8 @@ ax1=fig.add_subplot(111)
 
 x = np.arange(0, 140, 2)
 # using a gNFW approach to describe the velocity dispersion
-y_bulge = BulgeIntensityFunction(I_Bulge, x, Re_Bulge, n)
-y_disc = DiscIntensityFunction(I_Disc, x, Re_Disc)
+y_bulge = BulgeIntensityFunction(log_I_Bulge, x, Re_Bulge, n)
+y_disc = DiscIntensityFunction(log_I_Disc, x, Re_Disc)
 
 
 y_bulge[np.where(y_bulge < 0)] = 0
