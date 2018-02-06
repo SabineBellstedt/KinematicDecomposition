@@ -29,19 +29,20 @@ def krigingFileReadAll(Kriging_path, GalName):
 	return (RA, Dec, Vel, VelErr, VelDisp, VelDispErr)
 
 def BulgeIntensityFunction(I_Bulge, Radius_Bulge, Re_Bulge, n):
+	'''Here the intensity is calculated at the effective radius'''
 	k = 1.9992*n-0.3271
-	return I_Bulge * np.exp(-k * ((Radius_Bulge/Re_Bulge)**(1./n)))
+	# return I_Bulge * np.exp(-k * ((Radius_Bulge/Re_Bulge)**(1./n))-1) # in terms of luminosity
+	return I_Bulge + (2.5*k/np.log(10)) * ((Radius_Bulge/Re_Bulge)**(1/n) - 1)
 
-def DiscIntensityFunction(I_Disc, Radius_Disc, h):
-	return I_Disc * np.exp(-Radius_Disc/h)
+def DiscIntensityFunction(I_Disc, Radius_Disc, Re_Disc):
+	'''Here the intensity is calculated at the centre of the galaxy'''
+	h = Re_Disc / 1.678 # scale length
+	# return I_Disc * np.exp(-Radius_Disc/h) # in terms of luminosity
+	return I_Disc + (2.5/np.log(10)) * (Radius_Disc/h)
 
 def ComponentRadiusFunction(X, Y, phi, ellipticity_bulge, ellipticity_disc):
-	Radius_Bulge, Radius_Disc = [], []
-	for ii in range(len(X)):
-		Radius_Bulge.append(radius(X[ii], Y[ii], 0, 0, phi, ellipticity_bulge))
-		Radius_Disc.append(radius(X[ii], Y[ii], 0, 0, phi, ellipticity_disc))
-	Radius_Bulge = np.array(Radius_Bulge)
-	Radius_Disc = np.array(Radius_Disc)
+	Radius_Bulge = radiusArray(X, Y, phi, ellipticity_bulge)
+	Radius_Disc = radiusArray(X, Y, phi, ellipticity_disc)
 	return (Radius_Bulge, Radius_Disc)
 
 def AnglesFunction(X, Y):
@@ -57,14 +58,14 @@ def IntensityPlottingFunction(X, Y, BulgeIntensity, DiscIntensity, TotalIntensit
 	ax1=fig.add_subplot(131, aspect = 'equal')
 	ax2=fig.add_subplot(132, aspect = 'equal')
 	ax3=fig.add_subplot(133, aspect = 'equal')
-	ax1.pcolor(X, Y, np.log10(BulgeIntensity), cmap = 'jet', vmin=-2, vmax=np.max(np.log10(TotalIntensity)))
-	ax1.contour(X, Y, np.log10(BulgeIntensity), colors='k', linewidths = Linewidth_parameter)
+	ax1.pcolor(X, Y, BulgeIntensity, cmap = 'jet', vmin=-2, vmax=np.max(TotalIntensity))
+	ax1.contour(X, Y, BulgeIntensity, colors='k', linewidths = Linewidth_parameter)
 	ax1.set_title('Bulge')
-	ax2.pcolor(X, Y, np.log10(DiscIntensity), cmap = 'jet', vmin=-2, vmax=np.max(np.log10(TotalIntensity)))
-	ax2.contour(X, Y, np.log10(DiscIntensity), colors='k', linewidths = Linewidth_parameter)
+	ax2.pcolor(X, Y, DiscIntensity, cmap = 'jet', vmin=-2, vmax=np.max(TotalIntensity))
+	ax2.contour(X, Y, DiscIntensity, colors='k', linewidths = Linewidth_parameter)
 	ax2.set_title('Disc')
-	ax3.pcolor(X, Y, np.log10(TotalIntensity), cmap = 'jet', vmin=-2, vmax=np.max(np.log10(TotalIntensity)))
-	cs = ax3.contour(X, Y, np.log10(TotalIntensity), colors='k', linewidths = Linewidth_parameter)
+	ax3.pcolor(X, Y, TotalIntensity, cmap = 'jet', vmin=-2, vmax=np.max(TotalIntensity))
+	cs = ax3.contour(X, Y, TotalIntensity, colors='k', linewidths = Linewidth_parameter)
 	ax3.set_title('Total')
 	
 	AxialRatio = 1 - Ellipticity_measured
@@ -116,7 +117,7 @@ def RotationPlottingFunction(X, Y, BulgeRotationField, DiscRotationField, TotalR
 
 	fig=plt.figure(figsize=(5, 3))
 	ax1=fig.add_subplot(111, aspect = 'equal')
-	ax1.pcolor(X, Y, ObservedRotation-TotalRotation, cmap = 'coolwarm', vmin=-100, vmax=100)
+	ax1.pcolor(X, Y, ObservedRotation-TotalRotation, cmap = 'coolwarm', vmin=-50, vmax=50)
 	CS1 = ax1.contour(X, Y, ObservedRotation-TotalRotation, colors='k', linewidths = Linewidth_parameter)
 	ax1.clabel(CS1, fontsize=7, inline=1)
 	ax1.set_title('Rotation Residual')
@@ -165,7 +166,7 @@ def DispersionPlottingFunction(X, Y, BulgeDispersion, DiscDispersion, TotalDispe
 
 	fig=plt.figure(figsize=(5, 3))
 	ax1=fig.add_subplot(111, aspect = 'equal')
-	ax1.pcolor(X, Y, ObservedDispersion-TotalDispersion, cmap = 'coolwarm', vmin=-50, vmax=50)
+	ax1.pcolor(X, Y, ObservedDispersion-TotalDispersion, cmap = 'coolwarm', vmin=-30, vmax=30)
 	CS1 = ax1.contour(X, Y, ObservedDispersion-TotalDispersion, colors='k', linewidths = Linewidth_parameter)
 	ax1.clabel(CS1, fontsize=7, inline=1)
 	ax1.set_title('Dispersion Residual')
@@ -183,7 +184,7 @@ def DispersionPlottingFunction(X, Y, BulgeDispersion, DiscDispersion, TotalDispe
 def lnlike_RotationAndDispersion(theta, *args):
 	try:
 		ellipticity_bulge, I_Bulge, BulgeRotationScale, Max_vel_bulge, CentralBulgeDispersion, alpha_Bulge,  \
-		I_Disc, h, DiscRotationScale, Max_vel_disc, CentralDiscDispersion, alpha_Disc = theta
+		I_Disc, Re_Disc, DiscRotationScale, Max_vel_disc, CentralDiscDispersion, alpha_Disc = theta
 		tmpInputArgs = args[0]
 		(X, Y, Vel_Observed, VelErr_Observed, VelDisp_Observed, VelDispErr_Observed, \
 			EffectiveRadius, ObservedEllipticity, n, Re_Bulge) = tmpInputArgs
@@ -195,14 +196,15 @@ def lnlike_RotationAndDispersion(theta, *args):
 		ellipticity of the modelled galaxy, here we reduce the info about the ellipticity of one component
 		'''
 		BulgeIntensity_ellipticityTest = BulgeIntensityFunction(I_Bulge, EffectiveRadius, Re_Bulge, n)
-		DiscIntensity_ellipticityTest = DiscIntensityFunction(I_Disc, EffectiveRadius, h)
+		DiscIntensity_ellipticityTest = DiscIntensityFunction(I_Disc, EffectiveRadius, Re_Disc)
 
-		BulgeFraction_ellipticityTest = BulgeIntensity_ellipticityTest / (BulgeIntensity_ellipticityTest + DiscIntensity_ellipticityTest)
-		DiscFraction_ellipticityTest = DiscIntensity_ellipticityTest / (BulgeIntensity_ellipticityTest + DiscIntensity_ellipticityTest)
+		BulgeFraction_ellipticityTest = 10**BulgeIntensity_ellipticityTest / (10**BulgeIntensity_ellipticityTest + 10**DiscIntensity_ellipticityTest)
+		DiscFraction_ellipticityTest = 10**DiscIntensity_ellipticityTest / (10**BulgeIntensity_ellipticityTest + 10**DiscIntensity_ellipticityTest)
 
 		ellipticity_disc = (ObservedEllipticity - BulgeFraction_ellipticityTest*ellipticity_bulge) / DiscFraction_ellipticityTest
 		# print 'bulge ellipticity:', ellipticity_bulge, 'disc ellipticity:', ellipticity_disc
-		if (ellipticity_disc > 1) | (ellipticity_disc < 0):
+		# print 'bulge fraction:', BulgeFraction_ellipticityTest, 'disc fraction:', DiscFraction_ellipticityTest
+		if (ellipticity_disc > 1) | (ellipticity_disc < 0) | (np.isfinite(ellipticity_disc) == False):
 			Chi2Total = np.inf
 			# print 'run exited'
 		else:		
@@ -216,7 +218,7 @@ def lnlike_RotationAndDispersion(theta, *args):
 			'''
 			set up the phyical distribution of points from a disc component with an exponential profile
 			'''
-			DiscIntensity = DiscIntensityFunction(I_Disc, Radius_Disc, h)
+			DiscIntensity = DiscIntensityFunction(I_Disc, Radius_Disc, Re_Disc)
 			
 			'''
 			building mock rotational maps. 
@@ -275,14 +277,14 @@ def lnlike_RotationAndDispersion(theta, *args):
 
 def lnprior_RotationAndDispersion(theta, *args): #p(m, b, f)
     ellipticity_bulge, I_Bulge, BulgeRotationScale, Max_vel_bulge, CentralBulgeDispersion, alpha_Bulge,\
-    I_Disc, h, DiscRotationScale, Max_vel_disc, CentralDiscDispersion, alpha_Disc = theta
+    I_Disc, Re_Disc, DiscRotationScale, Max_vel_disc, CentralDiscDispersion, alpha_Disc = theta
 
     tmpInputArgs = args[0] 
     (ellipticity_bulge_lower, ellipticity_bulge_upper, I_Bulge_lower, I_Bulge_upper, BulgeRotationScale_lower, \
     	BulgeRotationScale_upper, Max_vel_bulge_lower, Max_vel_bulge_upper, CentralBulgeDispersion_lower, CentralBulgeDispersion_upper, \
     	alpha_Bulge_lower, alpha_Bulge_upper,  \
     	# ellipticity_disc_lower, ellipticity_disc_upper, \
-    	I_Disc_lower, I_Disc_upper, h_lower, h_upper, \
+    	I_Disc_lower, I_Disc_upper, Re_Disc_lower, Re_Disc_upper, \
     	DiscRotationScale_lower, DiscRotationScale_upper, Max_vel_disc_lower, Max_vel_disc_upper, \
     	CentralDiscDispersion_lower, CentralDiscDispersion_upper, alpha_Disc_lower, alpha_Disc_upper,  \
     	# gamma_Disc_lower, gamma_Disc_upper\
@@ -296,7 +298,7 @@ def lnprior_RotationAndDispersion(theta, *args): #p(m, b, f)
     	# (gamma_Bulge_lower <= gamma_Bulge <= gamma_Bulge_upper) and
     	# (ellipticity_disc_lower <= ellipticity_disc <= ellipticity_disc_upper) and \
     	(I_Disc_lower <= I_Disc <= I_Disc_upper) and \
-    	(h_lower <= h <= h_upper) and (DiscRotationScale_lower <= DiscRotationScale <= DiscRotationScale_upper) and \
+    	(Re_Disc_lower <= Re_Disc <= Re_Disc_upper) and (DiscRotationScale_lower <= DiscRotationScale <= DiscRotationScale_upper) and \
     	(Max_vel_disc_lower <= Max_vel_disc <= Max_vel_disc_upper) and \
     	(CentralDiscDispersion_lower <= CentralDiscDispersion <= CentralDiscDispersion_upper) and \
     	(alpha_Disc_lower <= alpha_Disc <= alpha_Disc_upper)):

@@ -31,7 +31,7 @@ from Sabine_Define import *
 from KinematicProducer_def import *
 
 
-GalName = 'NGC3377'
+GalName = 'NGC3608'
 # instead of sampling a given range, I now sample the same pixels as given for an observed galaxy. 
 ObservedGalaxyInput_Path = os.path.abspath(DropboxDirectory+'Dropbox/PhD_Analysis/Analysis/Angular Momentum/Mock_Kinematics')+'/'
 X, Y, Vel_Observed, VelErr_Observed, VelDisp_Observed, VelDispErr_Observed = krigingFileReadAll(ObservedGalaxyInput_Path, GalName)
@@ -42,24 +42,24 @@ ndim, nwalkers = 12, 200 # NUMBER OF WALKERS
 
 
 # setting the upper and lower bounds on the prior ranges of each parameter
-ellipticity_bulge_lower, ellipticity_bulge_upper = 0.0, 0.8 # we want this to be fairly round...
-I_Bulge_lower, I_Bulge_upper = 0, 10000
+ellipticity_bulge_lower, ellipticity_bulge_upper = 0.0, 0.5 # we want this to be fairly round...
+I_Bulge_lower, I_Bulge_upper = 12, 22
 # n_lower, n_upper = 3., 4.
 # Re_Bulge_lower, Re_Bulge_upper = 10, 100
 BulgeRotationScale_lower, BulgeRotationScale_upper = 1, 50
 Max_vel_bulge_lower, Max_vel_bulge_upper = -50, 50 # don't expect the bulge component to be rotating
-CentralBulgeDispersion_lower, CentralBulgeDispersion_upper = 0, 200 # dispersion at R_e/2
-alpha_Bulge_lower, alpha_Bulge_upper = 0, 0.2 # power law slope
+CentralBulgeDispersion_lower, CentralBulgeDispersion_upper = 0, 200 # central dispersion 
+alpha_Bulge_lower, alpha_Bulge_upper = 0.01, 0.2 # power law slope
 # beta_Bulge_lower, beta_Bulge_upper = -5, 0 # slope of velocity dispersion profile
 # gamma_Bulge_lower, gamma_Bulge_upper = -2, 0
 
 # ellipticity_disc_lower, ellipticity_disc_upper = 0.5, 1.0
-I_Disc_lower, I_Disc_upper = 0, 40
-h_lower, h_upper = 0, 50
+I_Disc_lower, I_Disc_upper = 13, 21
+Re_Disc_lower, Re_Disc_upper = 0, 50
 DiscRotationScale_lower, DiscRotationScale_upper = 1, 50
 Max_vel_disc_lower, Max_vel_disc_upper = -400, 400
-CentralDiscDispersion_lower, CentralDiscDispersion_upper = 0, 200 # dispersion at R_e/2
-alpha_Disc_lower, alpha_Disc_upper = 0, 0.2 # power law slope
+CentralDiscDispersion_lower, CentralDiscDispersion_upper = 0, 200 # central dispersion 
+alpha_Disc_lower, alpha_Disc_upper = 0.01, 0.2 # power law slope
 # beta_Disc_lower, beta_Disc_upper = -5, 0 # slope of velocity dispersion profile
 # gamma_Disc_lower, gamma_Disc_upper = -2, 0
 
@@ -80,7 +80,7 @@ for ii in np.arange(nwalkers):
 
 	# ellipticity_disc_init = np.random.uniform(low=ellipticity_disc_lower, high=ellipticity_disc_upper) 
 	I_Disc_init = np.random.uniform(low=I_Disc_lower, high=I_Disc_upper)
-	h_init = np.random.uniform(low=h_lower, high=h_upper)
+	Re_Disc_init = np.random.uniform(low=Re_Disc_lower, high=Re_Disc_upper)
 	DiscRotationScale_init = np.random.uniform(low=DiscRotationScale_lower, high=DiscRotationScale_upper) 
 	Max_vel_disc_init = np.random.uniform(low=Max_vel_disc_lower, high=Max_vel_disc_upper) 
 	CentralDiscDispersion_init = np.random.uniform(low=CentralDiscDispersion_lower, high=CentralDiscDispersion_upper) 
@@ -93,7 +93,7 @@ for ii in np.arange(nwalkers):
 		BulgeRotationScale_init, \
 		Max_vel_bulge_init, CentralBulgeDispersion_init, alpha_Bulge_init,  \
 		# ellipticity_disc_init, \
-		I_Disc_init, h_init, DiscRotationScale_init, Max_vel_disc_init, CentralDiscDispersion_init, \
+		I_Disc_init, Re_Disc_init, DiscRotationScale_init, Max_vel_disc_init, CentralDiscDispersion_init, \
 		alpha_Disc_init])
 
 # print pos_RotationAndDispersion
@@ -102,7 +102,7 @@ boundaries = [ellipticity_bulge_lower, ellipticity_bulge_upper, I_Bulge_lower, I
 	BulgeRotationScale_lower, BulgeRotationScale_upper, Max_vel_bulge_lower, Max_vel_bulge_upper, \
 	CentralBulgeDispersion_lower, CentralBulgeDispersion_upper, alpha_Bulge_lower, alpha_Bulge_upper, \
 	# ellipticity_disc_lower, ellipticity_disc_upper, \
-	I_Disc_lower, I_Disc_upper, h_lower, h_upper, DiscRotationScale_lower, DiscRotationScale_upper, \
+	I_Disc_lower, I_Disc_upper, Re_Disc_lower, Re_Disc_upper, DiscRotationScale_lower, DiscRotationScale_upper, \
 	Max_vel_disc_lower, Max_vel_disc_upper, CentralDiscDispersion_lower, CentralDiscDispersion_upper, \
 	alpha_Disc_lower, alpha_Disc_upper]
 
