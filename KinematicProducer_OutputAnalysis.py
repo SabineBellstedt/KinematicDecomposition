@@ -40,7 +40,7 @@ def parameterExtractor(inputDict, name):
 	print 'Parameter extraction successful for', name
 	return value, lower, upper
 
-GalName = 'NGC3377'
+GalName = 'NGC4459'
 
 OutputFileLocation = DropboxDirectory+'Dropbox/PhD_Analysis/Analysis/Angular Momentum/Mock_Kinematics/'+str(GalName)+'/'
 ObservedGalaxyInput_Path = os.path.abspath(DropboxDirectory+'Dropbox/PhD_Analysis/Analysis/Angular Momentum/Mock_Kinematics')+'/'
@@ -126,16 +126,17 @@ n = SersicIndex_Bulge[GalName]
 Re_Bulge = EffectiveRadius_Bulge[GalName]
 
 # saving all the extracted parameters to an output file
-Parameters = np.array([ellipticity_bulge, ellipticity_bulge_lower, ellipticity_bulge_upper, log_I_Bulge, log_I_Bulge_lower, log_I_Bulge_upper, \
+Parameters = np.c_[ellipticity_bulge, ellipticity_bulge_lower, ellipticity_bulge_upper, log_I_Bulge, log_I_Bulge_lower, log_I_Bulge_upper, \
 BulgeRotationScale, BulgeRotationScale_lower, BulgeRotationScale_upper, Max_vel_bulge, Max_vel_bulge_lower, Max_vel_bulge_upper, \
 CentralBulgeDispersion, CentralBulgeDispersion_lower, CentralBulgeDispersion_upper, alpha_Bulge, alpha_Bulge_lower, alpha_Bulge_upper, \
 log_I_Disc, log_I_Disc_lower, log_I_Disc_upper, Re_Disc, Re_Disc_lower, Re_Disc_upper, DiscRotationScale, DiscRotationScale_lower, DiscRotationScale_upper, \
 Max_vel_disc, Max_vel_disc_lower, Max_vel_disc_upper, CentralDiscDispersion, CentralDiscDispersion_lower, CentralDiscDispersion_upper, \
-alpha_Disc, alpha_Disc_lower, alpha_Disc_upper])
-Parameter_Header = '# e_bulge (- +), \tlog_I_Bulge (- +), \tBulgeRotationScale (- +), \tMax_vel_bulge (- +), \tCentralBulgeDispersion (- +), \talpha_Bulge (- +), \
+alpha_Disc, alpha_Disc_lower, alpha_Disc_upper]
+Parameter_Header = 'e_bulge (- +), \tlog_I_Bulge (- +), \tBulgeRotationScale (- +), \tMax_vel_bulge (- +), \tCentralBulgeDispersion (- +), \talpha_Bulge (- +), \
 \tlog_I_Disc (- +), \tRe_Disc (- +), \tDiscRotationScale (- +), \tMax_vel_disc (- +), \tCentralDiscDispersion (- +), \talpha_Disc (- +)'
 
-np.savetxt(OutputFileLocation+GalName+'_Parameters.txt', np.c_(Parameters), header = Parameter_Header)
+# print np.c_(Parameters)
+np.savetxt(OutputFileLocation+GalName+'_Parameters.txt', Parameters, header = Parameter_Header)
 
 
 # recreating the kinematics in order to make plots. 
@@ -249,8 +250,8 @@ Y_extrapolatedIntensity = np.array(Y_extrapolatedIntensity)
 
 Radius_Bulge_extrapolatedIntensity, Radius_Disc_extrapolatedIntensity = \
 	ComponentRadiusFunction(X_extrapolatedIntensity, Y_extrapolatedIntensity, phi, ellipticity_bulge, ellipticity_disc)
-BulgeIntensity_extrapolatedIntensity = BulgeIntensityFunction(I_Bulge, Radius_Bulge_extrapolatedIntensity, Re_Bulge, n)
-DiscIntensity_extrapolatedIntensity = DiscIntensityFunction(I_Disc, Radius_Disc_extrapolatedIntensity, h)
+BulgeIntensity_extrapolatedIntensity = BulgeIntensityFunction(log_I_Bulge, Radius_Bulge_extrapolatedIntensity, Re_Bulge, n)
+DiscIntensity_extrapolatedIntensity = DiscIntensityFunction(log_I_Disc, Radius_Disc_extrapolatedIntensity, Re_Disc)
 
 # calculating the bulge/total ratio
 print 'Bulge/Total:', np.sum(BulgeIntensity_extrapolatedIntensity) / ( np.sum(BulgeIntensity_extrapolatedIntensity) + np.sum(DiscIntensity_extrapolatedIntensity) )
@@ -276,10 +277,7 @@ for testRadius in np.arange(50, 200, 20):
 				minorRadius = testMinorRadius
 		testEllipticity = 1.-(float(minorRadius)/testRadius)
 	
-		referenceRadius = []
-		for ii in range(len(X_extrapolatedIntensity)):
-			referenceRadius.append(radius(X_extrapolatedIntensity[ii], Y_extrapolatedIntensity[ii], 0, 0, phi, testEllipticity))
-		referenceRadius = np.array(referenceRadius)
+		referenceRadius = radiusArray(X_extrapolatedIntensity, Y_extrapolatedIntensity, phi, testEllipticity)
 	
 		testEffectiveRadius = referenceRadius[np.where( (Y_extrapolatedIntensity == 0) & (X_extrapolatedIntensity == testRadius) )]
 		percentage = np.sum(TotalIntensity_extrapolatedIntensity[np.where(referenceRadius <= testEffectiveRadius)]) / np.sum(TotalIntensity_extrapolatedIntensity)
@@ -306,10 +304,7 @@ for testRadius in np.arange(coarseRadius-10, coarseRadius+10, 5):
 				minorRadius = testMinorRadius
 		testEllipticity = 1.-(float(minorRadius)/testRadius)
 		
-		referenceRadius = []
-		for ii in range(len(X_extrapolatedIntensity)):
-			referenceRadius.append(radius(X_extrapolatedIntensity[ii], Y_extrapolatedIntensity[ii], 0, 0, phi, testEllipticity))
-		referenceRadius = np.array(referenceRadius)
+		referenceRadius = radiusArray(X_extrapolatedIntensity, Y_extrapolatedIntensity, phi, testEllipticity)
 	
 		testEffectiveRadius = referenceRadius[np.where( (Y_extrapolatedIntensity == 0) & (X_extrapolatedIntensity == testRadius) )][0]
 		percentage = np.sum(TotalIntensity_extrapolatedIntensity[np.where(referenceRadius <= testEffectiveRadius)]) / np.sum(TotalIntensity_extrapolatedIntensity)
@@ -332,11 +327,11 @@ Vel_Observed = np.array(Vel_Observed).reshape(sizeMapx,sizeMapy)
 VelDisp_Observed = np.array(VelDisp_Observed).reshape(sizeMapx,sizeMapy)
 
 IntensityPlottingFunction(X, Y, BulgeIntensity, DiscIntensity, TotalIntensity, sizeMapx, sizeMapy, phi, Ellipticity, \
-	EffectiveRadius, filename = filenamePrefix+str(GalName)+'_MCMCOutput_Photometry.pdf')
+	EffectiveRadius, filename = OutputFileLocation+str(GalName)+'_MCMCOutput_Photometry.pdf')
 RotationPlottingFunction(X, Y, BulgeRotationField, DiscRotationField, TotalRotation, Vel_Observed, MinimumRotation, MaximumRotation, \
-	EffectiveRadius, 1-Ellipticity, filename = filenamePrefix+str(GalName)+'_MCMCOutput_Velocity.pdf')
+	EffectiveRadius, 1-Ellipticity, filename = OutputFileLocation+str(GalName)+'_MCMCOutput_Velocity.pdf')
 DispersionPlottingFunction(X, Y, BulgeDispersion, DiscDispersion, TotalDispersion, VelDisp_Observed, MinimumDispersion, MaximumDispersion, \
-	EffectiveRadius, 1-Ellipticity, filename = filenamePrefix+str(GalName)+'_MCMCOutput_Dispersion.pdf')
+	EffectiveRadius, 1-Ellipticity, filename = OutputFileLocation+str(GalName)+'_MCMCOutput_Dispersion.pdf')
 
 
 

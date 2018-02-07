@@ -58,8 +58,8 @@ log_I_Disc_lower, log_I_Disc_upper = np.log10(1e-9), np.log10(1e2)
 Re_Disc_lower, Re_Disc_upper = 0, 50
 DiscRotationScale_lower, DiscRotationScale_upper = 1, 50
 Max_vel_disc_lower, Max_vel_disc_upper = -400, 400
-CentralDiscDispersion_lower, CentralDiscDispersion_upper = 0, 200 # dispersion at R_e/2
-alpha_Disc_lower, alpha_Disc_upper = 0, 0.2 # power law slope
+CentralDiscDispersion_lower, CentralDiscDispersion_upper = 0, 300 # dispersion at R_e/2
+alpha_Disc_lower, alpha_Disc_upper = 0, 0.5 # power law slope
 # beta_Disc_lower, beta_Disc_upper = -5, 0 # slope of velocity dispersion profile
 # gamma_Disc_lower, gamma_Disc_upper = -2, 0
 
@@ -123,7 +123,7 @@ burnSteps = 50
 pos, prob, state = sampler.run_mcmc(pos_RotationAndDispersion, burnSteps)
 sampler.reset()
 
-stepNumber = 200
+stepNumber = 400
 outputMCMC = sampler.run_mcmc(pos, stepNumber) # uses the final position of the burn-in period as the starting point. 
 ######################################################
 
