@@ -30,7 +30,7 @@ def krigingFileReadAll(Kriging_path, GalName):
 
 def BulgeIntensityFunction(log_I_Bulge, Radius_Bulge, Re_Bulge, n):
 	k = 1.9992*n-0.3271
-	return (10**log_I_Bulge) * np.exp(-k * ((Radius_Bulge/Re_Bulge)**(1./n)))
+	return (10**log_I_Bulge) * np.exp(-k * ((Radius_Bulge/Re_Bulge)**(1./n)-1))
 
 def DiscIntensityFunction(log_I_Disc, Radius_Disc, Re_Disc):
 	h = Re_Disc/1.678

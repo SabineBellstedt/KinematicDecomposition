@@ -38,7 +38,7 @@ X, Y, Vel_Observed, VelErr_Observed, VelDisp_Observed, VelDispErr_Observed = kri
 	
 t0 = time.time()
 
-ndim, nwalkers = 12, 400 # NUMBER OF WALKERS
+ndim, nwalkers = 12, 1000 # NUMBER OF WALKERS
 
 
 # setting the upper and lower bounds on the prior ranges of each parameter
@@ -119,11 +119,11 @@ sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob_RotationAndDispersion,
                   threads=16) #Threads gives the number of processors to use
 
 ############ implementing a burn-in period ###########
-burnSteps = 50
+burnSteps = 200
 pos, prob, state = sampler.run_mcmc(pos_RotationAndDispersion, burnSteps)
 sampler.reset()
 
-stepNumber = 400
+stepNumber = 2000
 outputMCMC = sampler.run_mcmc(pos, stepNumber) # uses the final position of the burn-in period as the starting point. 
 ######################################################
 
@@ -132,7 +132,10 @@ t = time.time() - t0
 Date=time.strftime('%Y-%m-%d')
 Time = time.asctime().split()[3]
 print '########################################'
-print 'time elapsed:', float(t)/3600, 'hours'
+if float(t)/3600 < 1:
+	print 'time elapsed:', float(t)/60, 'minutes'
+else:
+	print 'time elapsed:', float(t)/3600, 'hours'
 print '########################################'
 print 'Mean acceptance fraction: ', (np.mean(sampler.acceptance_fraction))
 OutputFilename = DropboxDirectory+'Dropbox/PhD_Analysis/Analysis/Angular Momentum/Mock_Kinematics/'+str(GalName)+'/'+str(GalName)+'_MCMCOutput.dat'

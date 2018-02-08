@@ -259,7 +259,7 @@ TotalIntensity_extrapolatedIntensity = BulgeIntensity_extrapolatedIntensity + Di
 # first do a coarse iteration to identify the half light radius
 percentageDiff = 100
 percentage = 0
-for testRadius in np.arange(50, 200, 20):
+for testRadius in np.arange(10, 200, 10):
 	if percentage < 0.55: # don't bother continuing this process for radii that are larger than Re
 		# first identify the pixel that is closest in radius to the test radius
 		testIntensity = TotalIntensity_extrapolatedIntensity[np.where((Y_extrapolatedIntensity == 0) & \
@@ -267,7 +267,7 @@ for testRadius in np.arange(50, 200, 20):
 		# now identifying the radius of the associated intensity along the semiminor axis
 		# will have to iterate to identify the closest value, given the finite resolution
 		diff = 100000
-		for testMinorRadius in np.arange(5, testRadius, 4):
+		for testMinorRadius in np.arange(5, testRadius, 2):
 			minorIntensity = TotalIntensity_extrapolatedIntensity[np.where((X_extrapolatedIntensity == 0) & (Y_extrapolatedIntensity == testMinorRadius))]
 			if abs(testIntensity - minorIntensity) < diff:
 				diff = abs(testIntensity - minorIntensity)
@@ -286,7 +286,7 @@ for testRadius in np.arange(50, 200, 20):
 # now to do the exact same thing but on a finer scale
 percentageDiff = 100
 percentage = 0
-for testRadius in np.arange(coarseRadius-10, coarseRadius+10, 5):
+for testRadius in np.arange(coarseRadius-5, coarseRadius+5, 1):
 	if percentage < 0.55: # don't bother continuing this process for radii that are larger than Re
 		# first identify the pixel that is closest in radius to the test radius
 		testIntensity = TotalIntensity_extrapolatedIntensity[np.where((Y_extrapolatedIntensity == 0) & \
