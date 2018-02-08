@@ -40,7 +40,8 @@ def parameterExtractor(inputDict, name):
 	print 'Parameter extraction successful for', name
 	return value, lower, upper
 
-GalName = 'NGC4459'
+GalName = 'NGC3377'
+print GalName
 
 OutputFileLocation = DropboxDirectory+'Dropbox/PhD_Analysis/Analysis/Angular Momentum/Mock_Kinematics/'+str(GalName)+'/'
 ObservedGalaxyInput_Path = os.path.abspath(DropboxDirectory+'Dropbox/PhD_Analysis/Analysis/Angular Momentum/Mock_Kinematics')+'/'
@@ -163,21 +164,17 @@ DiscIntensity = DiscIntensityFunction(log_I_Disc, Radius_Disc, Re_Disc)
 '''
 building mock rotational maps. 
 '''
-Angles = AnglesFunction(X, Y)
-
 # transforming the Angular term
-AngularTerm = []
-for angle in Angles:
-	if ((angle >= 0) & (angle <= 90)):
-		AngularTerm.append( np.sin(radian(angle - 90))+1 )
-	elif ((angle > 90) & (angle <= 180)):
-		AngularTerm.append( np.sin(radian(angle +90))+1 )
-	elif ((angle > 180) & (angle <= 270)):
-		AngularTerm.append( np.sin(radian(angle - 90))-1 )
-	elif ((angle > 270) & (angle <= 360)):
-		AngularTerm.append( np.sin(radian(angle + 90))-1 )
-
-AngularTerm = np.array(AngularTerm)
+Angles = positionAngle(X, Y, 0, 0)
+AngularTerm = np.zeros(len(Angles))
+SelOne = np.where((Angles >= 0) & (Angles <= 90))
+AngularTerm[SelOne] = np.sin(radian(Angles[SelOne] - 90))+1 
+SelTwo = np.where((Angles > 90) & (Angles <= 180))
+AngularTerm[SelTwo] = np.sin(radian(Angles[SelTwo] +90))+1 
+SelThree = np.where((Angles > 180) & (Angles <= 270))
+AngularTerm[SelThree] =  np.sin(radian(Angles[SelThree] - 90))-1 
+SelFour = np.where((Angles > 270) & (Angles <= 360))
+AngularTerm[SelFour] = np.sin(radian(Angles[SelFour] + 90))-1 
 
 DiscRotation = (Max_vel_disc* Radius_Disc / (DiscRotationScale+ Radius_Disc) ) * AngularTerm
 BulgeRotation = (Max_vel_bulge* Radius_Bulge / (BulgeRotationScale+ Radius_Bulge) ) * AngularTerm

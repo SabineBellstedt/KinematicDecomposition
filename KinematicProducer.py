@@ -38,7 +38,7 @@ X, Y, Vel_Observed, VelErr_Observed, VelDisp_Observed, VelDispErr_Observed = kri
 	
 t0 = time.time()
 
-ndim, nwalkers = 12, 200 # NUMBER OF WALKERS
+ndim, nwalkers = 12, 400 # NUMBER OF WALKERS
 
 
 # setting the upper and lower bounds on the prior ranges of each parameter

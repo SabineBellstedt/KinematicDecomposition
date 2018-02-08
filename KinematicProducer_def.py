@@ -41,13 +41,11 @@ def ComponentRadiusFunction(X, Y, phi, ellipticity_bulge, ellipticity_disc):
 	Radius_Disc = radiusArray(X, Y, phi, ellipticity_disc)
 	return (Radius_Bulge, Radius_Disc)
 
-def AnglesFunction(X, Y):
-	Angles = []
-	for ii in range(len(X)):
-		Angles.append(positionAngle(X[ii], Y[ii], 0, 0))
-	Angles = np.array(Angles)
-	return Angles
-
+# def AnglesFunction(X, Y):
+# 	Angles=np.arctan(-radian(-X), -radian(-Y))
+# 	sel = np.where(Angles < 0)
+# 	Angles[sel] = Angles[sel] + 2*np.pi
+# 	return (degree(Angles))
 
 def IntensityPlottingFunction(X, Y, BulgeIntensity, DiscIntensity, TotalIntensity, sizeMapx, sizeMapy, phi, Ellipticity_measured, HalfLightRadius, Linewidth_parameter = 0.8, filename = 'BulgeDiscTest.pdf'):
 	fig=plt.figure(figsize=(11, 3))
@@ -183,18 +181,18 @@ def lnlike_RotationAndDispersion(theta, *args):
 			EffectiveRadius, ObservedEllipticity, n, Re_Bulge) = tmpInputArgs
 		PA = 90*np.pi/180
 		phi=(PA-np.pi/2.0) # accounting for the different 0 PA convention in astronomy to mathematics
-
+		
 		'''
 		in an attempt to reduce the number of free parameters, and also to use the fact that we know the projected 
 		ellipticity of the modelled galaxy, here we reduce the info about the ellipticity of one component
 		'''
-
+		
 		BulgeIntensity_ellipticityTest = BulgeIntensityFunction(log_I_Bulge, EffectiveRadius, Re_Bulge, n)
 		DiscIntensity_ellipticityTest = DiscIntensityFunction(log_I_Disc, EffectiveRadius, Re_Disc)
-
+		
 		BulgeFraction_ellipticityTest = BulgeIntensity_ellipticityTest / (BulgeIntensity_ellipticityTest + DiscIntensity_ellipticityTest)
 		DiscFraction_ellipticityTest = DiscIntensity_ellipticityTest / (BulgeIntensity_ellipticityTest + DiscIntensity_ellipticityTest)
-
+		
 		ellipticity_disc = (ObservedEllipticity - BulgeFraction_ellipticityTest*ellipticity_bulge) / DiscFraction_ellipticityTest
 		# print 'bulge ellipticity:', ellipticity_bulge, 'disc ellipticity:', ellipticity_disc
 		if (ellipticity_disc > 1) | (ellipticity_disc < 0) | (np.isfinite(ellipticity_disc) == False):
@@ -202,7 +200,7 @@ def lnlike_RotationAndDispersion(theta, *args):
 			# print 'run exited'
 		else:		
 			Radius_Bulge, Radius_Disc = ComponentRadiusFunction(X, Y, phi, ellipticity_bulge, ellipticity_disc)
-	
+		
 			'''
 			set up the phyical distribution of points from a bulge component with a sersic profile
 			'''
@@ -216,20 +214,36 @@ def lnlike_RotationAndDispersion(theta, *args):
 			'''
 			building mock rotational maps. 
 			'''
-			Angles = AnglesFunction(X, Y)
+			# Angles = AnglesFunction(X, Y)
 			# transforming the Angular term
-			AngularTerm = []
-			for angle in Angles:
-				if ((angle >= 0) & (angle <= 90)):
-					AngularTerm.append( np.sin(radian(angle - 90))+1 )
-				elif ((angle > 90) & (angle <= 180)):
-					AngularTerm.append( np.sin(radian(angle +90))+1 )
-				elif ((angle > 180) & (angle <= 270)):
-					AngularTerm.append( np.sin(radian(angle - 90))-1 )
-				elif ((angle > 270) & (angle <= 360)):
-					AngularTerm.append( np.sin(radian(angle + 90))-1 )
+			# AngularTerm = []
+			# for angle in Angles:
+			# 	if ((angle >= 0) & (angle <= 90)):
+			# 		AngularTerm.append( np.sin(radian(angle - 90))+1 )
+			# 	elif ((angle > 90) & (angle <= 180)):
+			# 		AngularTerm.append( np.sin(radian(angle +90))+1 )
+			# 	elif ((angle > 180) & (angle <= 270)):
+			# 		AngularTerm.append( np.sin(radian(angle - 90))-1 )
+			# 	elif ((angle > 270) & (angle <= 360)):
+			# 		AngularTerm.append( np.sin(radian(angle + 90))-1 )
 			
-			AngularTerm = np.array(AngularTerm)
+			# AngularTerm = np.array(AngularTerm)
+			# print AngularTerm
+			Angles = positionAngle(X, Y, 0, 0)
+			AngularTerm = np.zeros(len(Angles))
+			SelOne = np.where((Angles >= 0) & (Angles <= 90))
+			AngularTerm[SelOne] = np.sin(radian(Angles[SelOne] - 90))+1 
+	
+			SelTwo = np.where((Angles > 90) & (Angles <= 180))
+			AngularTerm[SelTwo] = np.sin(radian(Angles[SelTwo] +90))+1 
+	
+			SelThree = np.where((Angles > 180) & (Angles <= 270))
+			AngularTerm[SelThree] =  np.sin(radian(Angles[SelThree] - 90))-1 
+	
+			SelFour = np.where((Angles > 270) & (Angles <= 360))
+			AngularTerm[SelFour] = np.sin(radian(Angles[SelFour] + 90))-1 
+	
+	
 			
 			DiscRotation = (Max_vel_disc* Radius_Disc / (DiscRotationScale + Radius_Disc) ) * AngularTerm
 			BulgeRotation = (Max_vel_bulge* Radius_Bulge / (BulgeRotationScale + Radius_Bulge) ) * AngularTerm
@@ -244,7 +258,7 @@ def lnlike_RotationAndDispersion(theta, *args):
 			# using the power law equation as given by Cappellari et al (2006)
 			BulgeDispersion = CentralBulgeDispersion * Radius_Bulge**(-alpha_Bulge)
 			DiscDispersion = CentralDiscDispersion * Radius_Disc**(-alpha_Disc)
-	
+		
 			# check that the dispersion profiles never go below 0
 			BulgeDispersion[np.where(BulgeDispersion < 0)] = 0
 			DiscDispersion[np.where(DiscDispersion < 0)] = 0
