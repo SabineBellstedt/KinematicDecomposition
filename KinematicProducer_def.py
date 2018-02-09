@@ -53,13 +53,16 @@ def IntensityPlottingFunction(X, Y, BulgeIntensity, DiscIntensity, TotalIntensit
 	ax2=fig.add_subplot(132, aspect = 'equal')
 	ax3=fig.add_subplot(133, aspect = 'equal')
 	ax1.pcolor(X, Y, np.log10(BulgeIntensity), cmap = 'jet', vmin=np.min(np.log10(TotalIntensity)), vmax=np.max(np.log10(TotalIntensity)))
-	ax1.contour(X, Y, np.log10(BulgeIntensity), colors='k', linewidths = Linewidth_parameter)
+	CS1 = ax1.contour(X, Y, np.log10(BulgeIntensity), colors='k', linewidths = Linewidth_parameter)
+	ax1.clabel(CS1, fontsize=7, inline=1)
 	ax1.set_title('Bulge')
 	ax2.pcolor(X, Y, np.log10(DiscIntensity), cmap = 'jet', vmin=np.min(np.log10(TotalIntensity)), vmax=np.max(np.log10(TotalIntensity)))
-	ax2.contour(X, Y, np.log10(DiscIntensity), colors='k', linewidths = Linewidth_parameter)
+	CS2 = ax2.contour(X, Y, np.log10(DiscIntensity), colors='k', linewidths = Linewidth_parameter)
+	ax2.clabel(CS2, fontsize=7, inline=1)
 	ax2.set_title('Disc')
 	ax3.pcolor(X, Y, np.log10(TotalIntensity), cmap = 'jet', vmin=np.min(np.log10(TotalIntensity)), vmax=np.max(np.log10(TotalIntensity)))
-	cs = ax3.contour(X, Y, np.log10(TotalIntensity), colors='k', linewidths = Linewidth_parameter)
+	CS3 = ax3.contour(X, Y, np.log10(TotalIntensity), colors='k', linewidths = Linewidth_parameter)
+	ax3.clabel(CS3, fontsize=7, inline=1)
 	ax3.set_title('Total')
 	
 	AxialRatio = 1 - Ellipticity_measured
@@ -174,14 +177,15 @@ def DispersionPlottingFunction(X, Y, BulgeDispersion, DiscDispersion, TotalDispe
 
 def lnlike_RotationAndDispersion(theta, *args):
 	try:
-		ellipticity_bulge, log_I_Bulge, BulgeRotationScale, Max_vel_bulge, CentralBulgeDispersion, alpha_Bulge,  \
+		ellipticity_bulge, BulgeRotationScale, Max_vel_bulge, CentralBulgeDispersion, alpha_Bulge,  \
 		log_I_Disc, Re_Disc, DiscRotationScale, Max_vel_disc, CentralDiscDispersion, alpha_Disc = theta
 		tmpInputArgs = args[0]
 		(X, Y, Vel_Observed, VelErr_Observed, VelDisp_Observed, VelDispErr_Observed, \
-			EffectiveRadius, ObservedEllipticity, n, Re_Bulge) = tmpInputArgs
+			EffectiveRadius, ObservedEllipticity, n, Re_Bulge, mag_Bulge, Spitzer_Radius, Spitzer_Mag, Spitzer_MagErr) = tmpInputArgs
 		PA = 90*np.pi/180
 		phi=(PA-np.pi/2.0) # accounting for the different 0 PA convention in astronomy to mathematics
-		
+		log_I_Bulge = -mag_Bulge / 2.5
+			
 		'''
 		in an attempt to reduce the number of free parameters, and also to use the fact that we know the projected 
 		ellipticity of the modelled galaxy, here we reduce the info about the ellipticity of one component
@@ -195,9 +199,15 @@ def lnlike_RotationAndDispersion(theta, *args):
 		
 		ellipticity_disc = (ObservedEllipticity - BulgeFraction_ellipticityTest*ellipticity_bulge) / DiscFraction_ellipticityTest
 		# print 'bulge ellipticity:', ellipticity_bulge, 'disc ellipticity:', ellipticity_disc
+	
+		# calculating the Chi2/dof from the fit to the luminosity profile
+		# we only want to fit the profile in the region where we have actual data
+		ModelMagProfile = -2.5*np.log10(BulgeIntensityFunction(log_I_Bulge, Spitzer_Radius, Re_Bulge, n) + \
+			DiscIntensityFunction(log_I_Disc, Spitzer_Radius, Re_Disc))
+		# print len(Spitzer_Radius), Spitzer_MagErr
+		Chi2Lum = np.sum( (ModelMagProfile - Spitzer_Mag)**2/(Spitzer_MagErr**2) ) 
 		if (ellipticity_disc > 1) | (ellipticity_disc < 0) | (np.isfinite(ellipticity_disc) == False):
 			Chi2Total = np.inf
-			# print 'run exited'
 		else:		
 			Radius_Bulge, Radius_Disc = ComponentRadiusFunction(X, Y, phi, ellipticity_bulge, ellipticity_disc)
 		
@@ -214,36 +224,21 @@ def lnlike_RotationAndDispersion(theta, *args):
 			'''
 			building mock rotational maps. 
 			'''
-			# Angles = AnglesFunction(X, Y)
-			# transforming the Angular term
-			# AngularTerm = []
-			# for angle in Angles:
-			# 	if ((angle >= 0) & (angle <= 90)):
-			# 		AngularTerm.append( np.sin(radian(angle - 90))+1 )
-			# 	elif ((angle > 90) & (angle <= 180)):
-			# 		AngularTerm.append( np.sin(radian(angle +90))+1 )
-			# 	elif ((angle > 180) & (angle <= 270)):
-			# 		AngularTerm.append( np.sin(radian(angle - 90))-1 )
-			# 	elif ((angle > 270) & (angle <= 360)):
-			# 		AngularTerm.append( np.sin(radian(angle + 90))-1 )
-			
-			# AngularTerm = np.array(AngularTerm)
-			# print AngularTerm
 			Angles = positionAngle(X, Y, 0, 0)
 			AngularTerm = np.zeros(len(Angles))
 			SelOne = np.where((Angles >= 0) & (Angles <= 90))
 			AngularTerm[SelOne] = np.sin(radian(Angles[SelOne] - 90))+1 
-	
+		
 			SelTwo = np.where((Angles > 90) & (Angles <= 180))
 			AngularTerm[SelTwo] = np.sin(radian(Angles[SelTwo] +90))+1 
-	
+		
 			SelThree = np.where((Angles > 180) & (Angles <= 270))
 			AngularTerm[SelThree] =  np.sin(radian(Angles[SelThree] - 90))-1 
-	
+		
 			SelFour = np.where((Angles > 270) & (Angles <= 360))
 			AngularTerm[SelFour] = np.sin(radian(Angles[SelFour] + 90))-1 
-	
-	
+		
+		
 			
 			DiscRotation = (Max_vel_disc* Radius_Disc / (DiscRotationScale + Radius_Disc) ) * AngularTerm
 			BulgeRotation = (Max_vel_bulge* Radius_Bulge / (BulgeRotationScale + Radius_Bulge) ) * AngularTerm
@@ -275,7 +270,7 @@ def lnlike_RotationAndDispersion(theta, *args):
 			Chi2Rot = np.sum( (Vel_Observed[ObservedSel] - TotalRotation[ObservedSel])**2/(VelErr_Observed[ObservedSel]**2) ) 
 			Chi2Disp = np.sum( (VelDisp_Observed[ObservedSel] - TotalDispersion[ObservedSel])**2/(VelDispErr_Observed[ObservedSel])**2 )
 			
-			Chi2Total = Chi2Rot + Chi2Disp
+			Chi2Total = Chi2Rot + Chi2Disp + Chi2Lum
 			# print Chi2Rot, Chi2Disp
 	except:
 		Chi2Total = np.inf
@@ -283,12 +278,14 @@ def lnlike_RotationAndDispersion(theta, *args):
 
 
 def lnprior_RotationAndDispersion(theta, *args): #p(m, b, f)
-    ellipticity_bulge, log_I_Bulge, BulgeRotationScale, Max_vel_bulge, CentralBulgeDispersion, alpha_Bulge,\
+    ellipticity_bulge, BulgeRotationScale, Max_vel_bulge, CentralBulgeDispersion, alpha_Bulge,\
     log_I_Disc, Re_Disc, DiscRotationScale, Max_vel_disc, CentralDiscDispersion, alpha_Disc = theta
 
     tmpInputArgs = args[0] 
-    (ellipticity_bulge_lower, ellipticity_bulge_upper, log_I_Bulge_lower, log_I_Bulge_upper, BulgeRotationScale_lower, \
-    	BulgeRotationScale_upper, Max_vel_bulge_lower, Max_vel_bulge_upper, CentralBulgeDispersion_lower, CentralBulgeDispersion_upper, \
+    (ellipticity_bulge_lower, ellipticity_bulge_upper, \
+    	# log_I_Bulge_lower, log_I_Bulge_upper, \
+    	BulgeRotationScale_lower, BulgeRotationScale_upper, \
+    	Max_vel_bulge_lower, Max_vel_bulge_upper, CentralBulgeDispersion_lower, CentralBulgeDispersion_upper, \
     	alpha_Bulge_lower, alpha_Bulge_upper,  \
     	# ellipticity_disc_lower, ellipticity_disc_upper, \
     	log_I_Disc_lower, log_I_Disc_upper, Re_Disc_lower, Re_Disc_upper, \
@@ -298,7 +295,8 @@ def lnprior_RotationAndDispersion(theta, *args): #p(m, b, f)
     	) = tmpInputArgs
 
     if ((ellipticity_bulge_lower <= ellipticity_bulge <= ellipticity_bulge_upper) and \
-    	(log_I_Bulge_lower <= log_I_Bulge <= log_I_Bulge_upper) and (BulgeRotationScale_lower <= BulgeRotationScale <= BulgeRotationScale_upper) and \
+    	# (log_I_Bulge_lower <= log_I_Bulge <= log_I_Bulge_upper) and \
+    	(BulgeRotationScale_lower <= BulgeRotationScale <= BulgeRotationScale_upper) and \
     	(Max_vel_bulge_lower <= Max_vel_bulge <= Max_vel_bulge_upper) and \
     	(CentralBulgeDispersion_lower <= CentralBulgeDispersion <= CentralBulgeDispersion_upper) and \
     	(alpha_Bulge_lower <= alpha_Bulge <= alpha_Bulge_upper) and  \
