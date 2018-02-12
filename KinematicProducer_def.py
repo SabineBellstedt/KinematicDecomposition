@@ -41,6 +41,38 @@ def ComponentRadiusFunction(X, Y, phi, ellipticity_bulge, ellipticity_disc):
 	Radius_Disc = radiusArray(X, Y, phi, ellipticity_disc)
 	return (Radius_Bulge, Radius_Disc)
 
+def AngularVariationFlippedSine(Angles):
+	AngularTerm = np.zeros(len(Angles))
+	SelOne = np.where((Angles >= 0) & (Angles <= 90))
+	AngularTerm[SelOne] = np.sin(radian(Angles[SelOne] - 90))+1 
+	
+	SelTwo = np.where((Angles > 90) & (Angles <= 180))
+	AngularTerm[SelTwo] = np.sin(radian(Angles[SelTwo] +90))+1 
+	
+	SelThree = np.where((Angles > 180) & (Angles <= 270))
+	AngularTerm[SelThree] =  np.sin(radian(Angles[SelThree] - 90))-1 
+	
+	SelFour = np.where((Angles > 270) & (Angles <= 360))
+	AngularTerm[SelFour] = np.sin(radian(Angles[SelFour] + 90))-1 
+	return AngularTerm
+
+
+def AngularVariationEpsilon(Angles, epsilon):
+	epsilon = 0.3 * epsilon
+	AngularTerm = np.zeros(len(Angles))
+	SelOne = np.where((Angles >= 0) & (Angles <= 90))
+	AngularTerm[SelOne] = epsilon * np.sin(radian(2*Angles[SelOne])) + radian(Angles[SelOne])* np.tan(np.arctan(2/np.pi))
+	
+	SelTwo = np.where((Angles > 90) & (Angles <= 180))
+	AngularTerm[SelTwo] = epsilon * np.sin(radian(2*(Angles[SelTwo] - 90))) + radian((Angles[SelTwo] - 90))* np.tan(-np.arctan(2/np.pi)) + 1
+	
+	SelThree = np.where((Angles > 180) & (Angles <= 270))
+	AngularTerm[SelThree] =  -epsilon * np.sin(radian(2*(Angles[SelThree] - 180))) + radian((Angles[SelThree] - 180))* np.tan(-np.pi - np.arctan(2/np.pi)) 
+	
+	SelFour = np.where((Angles > 270) & (Angles <= 360))
+	AngularTerm[SelFour] = -epsilon * np.sin(radian(2*(Angles[SelFour] - 270))) + radian((Angles[SelFour] - 270))* np.tan(np.arctan(2/np.pi)) -1
+	return AngularTerm
+
 # def AnglesFunction(X, Y):
 # 	Angles=np.arctan(-radian(-X), -radian(-Y))
 # 	sel = np.where(Angles < 0)
@@ -178,7 +210,7 @@ def DispersionPlottingFunction(X, Y, BulgeDispersion, DiscDispersion, TotalDispe
 def lnlike_RotationAndDispersion(theta, *args):
 	try:
 		ellipticity_bulge, BulgeRotationScale, Max_vel_bulge, CentralBulgeDispersion, alpha_Bulge,  \
-		log_I_Disc, Re_Disc, DiscRotationScale, Max_vel_disc, CentralDiscDispersion, alpha_Disc = theta
+		log_I_Disc, Re_Disc, DiscRotationScale, Max_vel_disc, CentralDiscDispersion, alpha_Disc, AzimuthVariationParameter = theta
 		tmpInputArgs = args[0]
 		(X, Y, Vel_Observed, VelErr_Observed, VelDisp_Observed, VelDispErr_Observed, \
 			EffectiveRadius, ObservedEllipticity, n, Re_Bulge, mag_Bulge, Spitzer_Radius, Spitzer_Mag, Spitzer_MagErr) = tmpInputArgs
@@ -225,18 +257,19 @@ def lnlike_RotationAndDispersion(theta, *args):
 			building mock rotational maps. 
 			'''
 			Angles = positionAngle(X, Y, 0, 0)
-			AngularTerm = np.zeros(len(Angles))
-			SelOne = np.where((Angles >= 0) & (Angles <= 90))
-			AngularTerm[SelOne] = np.sin(radian(Angles[SelOne] - 90))+1 
+			# AngularTerm = np.zeros(len(Angles))
+			AngularTerm = AngularVariationEpsilon(Angles, AzimuthVariationParameter)
+			# SelOne = np.where((Angles >= 0) & (Angles <= 90))
+			# AngularTerm[SelOne] = np.sin(radian(Angles[SelOne] - 90))+1 
 		
-			SelTwo = np.where((Angles > 90) & (Angles <= 180))
-			AngularTerm[SelTwo] = np.sin(radian(Angles[SelTwo] +90))+1 
+			# SelTwo = np.where((Angles > 90) & (Angles <= 180))
+			# AngularTerm[SelTwo] = np.sin(radian(Angles[SelTwo] +90))+1 
 		
-			SelThree = np.where((Angles > 180) & (Angles <= 270))
-			AngularTerm[SelThree] =  np.sin(radian(Angles[SelThree] - 90))-1 
+			# SelThree = np.where((Angles > 180) & (Angles <= 270))
+			# AngularTerm[SelThree] =  np.sin(radian(Angles[SelThree] - 90))-1 
 		
-			SelFour = np.where((Angles > 270) & (Angles <= 360))
-			AngularTerm[SelFour] = np.sin(radian(Angles[SelFour] + 90))-1 
+			# SelFour = np.where((Angles > 270) & (Angles <= 360))
+			# AngularTerm[SelFour] = np.sin(radian(Angles[SelFour] + 90))-1 
 		
 		
 			
@@ -279,7 +312,7 @@ def lnlike_RotationAndDispersion(theta, *args):
 
 def lnprior_RotationAndDispersion(theta, *args): #p(m, b, f)
     ellipticity_bulge, BulgeRotationScale, Max_vel_bulge, CentralBulgeDispersion, alpha_Bulge,\
-    log_I_Disc, Re_Disc, DiscRotationScale, Max_vel_disc, CentralDiscDispersion, alpha_Disc = theta
+    log_I_Disc, Re_Disc, DiscRotationScale, Max_vel_disc, CentralDiscDispersion, alpha_Disc, AzimuthVariationParameter = theta
 
     tmpInputArgs = args[0] 
     (ellipticity_bulge_lower, ellipticity_bulge_upper, \
@@ -291,6 +324,7 @@ def lnprior_RotationAndDispersion(theta, *args): #p(m, b, f)
     	log_I_Disc_lower, log_I_Disc_upper, Re_Disc_lower, Re_Disc_upper, \
     	DiscRotationScale_lower, DiscRotationScale_upper, Max_vel_disc_lower, Max_vel_disc_upper, \
     	CentralDiscDispersion_lower, CentralDiscDispersion_upper, alpha_Disc_lower, alpha_Disc_upper,  \
+    	AzimuthVariationParameter_lower, AzimuthVariationParameter_upper \
     	# gamma_Disc_lower, gamma_Disc_upper\
     	) = tmpInputArgs
 
@@ -306,7 +340,8 @@ def lnprior_RotationAndDispersion(theta, *args): #p(m, b, f)
     	(Re_Disc_lower <= Re_Disc <= Re_Disc_upper) and (DiscRotationScale_lower <= DiscRotationScale <= DiscRotationScale_upper) and \
     	(Max_vel_disc_lower <= Max_vel_disc <= Max_vel_disc_upper) and \
     	(CentralDiscDispersion_lower <= CentralDiscDispersion <= CentralDiscDispersion_upper) and \
-    	(alpha_Disc_lower <= alpha_Disc <= alpha_Disc_upper)):
+    	(alpha_Disc_lower <= alpha_Disc <= alpha_Disc_upper) and \
+    	(AzimuthVariationParameter_lower <= AzimuthVariationParameter <= AzimuthVariationParameter_upper)):
         return 0.
     else:
         return -np.inf

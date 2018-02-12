@@ -31,14 +31,14 @@ from Sabine_Define import *
 from KinematicProducer_def import *
 
 
-GalName = 'NGC4459'
+GalName = 'NGC3377'
 # instead of sampling a given range, I now sample the same pixels as given for an observed galaxy. 
 ObservedGalaxyInput_Path = os.path.abspath(DropboxDirectory+'Dropbox/PhD_Analysis/Analysis/Angular Momentum/Mock_Kinematics')+'/'
 X, Y, Vel_Observed, VelErr_Observed, VelDisp_Observed, VelDispErr_Observed = krigingFileReadAll(ObservedGalaxyInput_Path, GalName)
 	
 t0 = time.time()
 
-ndim, nwalkers = 11, 1000 # NUMBER OF WALKERS
+ndim, nwalkers = 12, 1000 # NUMBER OF WALKERS
 
 
 # setting the upper and lower bounds on the prior ranges of each parameter
@@ -47,21 +47,23 @@ ellipticity_bulge_lower, ellipticity_bulge_upper = 0.0, 0.8 # we want this to be
 # n_lower, n_upper = 3., 4.
 # Re_Bulge_lower, Re_Bulge_upper = 10, 100
 BulgeRotationScale_lower, BulgeRotationScale_upper = 1, 50
-Max_vel_bulge_lower, Max_vel_bulge_upper = -50, 50 # don't expect the bulge component to be rotating
+Max_vel_bulge_lower, Max_vel_bulge_upper = -100, 100 # don't expect the bulge component to be rotating
 CentralBulgeDispersion_lower, CentralBulgeDispersion_upper = 0, 300 # dispersion at R_e/2
 alpha_Bulge_lower, alpha_Bulge_upper = 0, 0.2 # power law slope
 # beta_Bulge_lower, beta_Bulge_upper = -5, 0 # slope of velocity dispersion profile
 # gamma_Bulge_lower, gamma_Bulge_upper = -2, 0
 
 # ellipticity_disc_lower, ellipticity_disc_upper = 0.5, 1.0
-log_I_Disc_lower, log_I_Disc_upper = np.log10(1e-10), np.log10(1e2)
-Re_Disc_lower, Re_Disc_upper = 0, 50
+log_I_Disc_lower, log_I_Disc_upper = np.log10(1e-7), np.log10(1e2)
+Re_Disc_lower, Re_Disc_upper = 0, 100
 DiscRotationScale_lower, DiscRotationScale_upper = 1, 50
 Max_vel_disc_lower, Max_vel_disc_upper = -400, 400
 CentralDiscDispersion_lower, CentralDiscDispersion_upper = 0, 300 # dispersion at R_e/2
 alpha_Disc_lower, alpha_Disc_upper = 0, 0.5 # power law slope
 # beta_Disc_lower, beta_Disc_upper = -5, 0 # slope of velocity dispersion profile
 # gamma_Disc_lower, gamma_Disc_upper = -2, 0
+
+AzimuthVariationParameter_lower, AzimuthVariationParameter_upper = -1.0, 1.0
 
 
 # defining the initial position of the walkers
@@ -87,6 +89,7 @@ for ii in np.arange(nwalkers):
 	alpha_Disc_init = np.random.uniform(low=alpha_Disc_lower, high=alpha_Disc_upper) 
 	# beta_Disc_init = np.random.uniform(low=beta_Disc_lower, high=beta_Disc_upper) 
 	# gamma_Disc_init = np.random.uniform(low=gamma_Disc_lower, high=gamma_Disc_upper) 
+	AzimuthVariationParameter_init = np.random.uniform(low=AzimuthVariationParameter_lower, high=AzimuthVariationParameter_upper) 
 
 	pos_RotationAndDispersion.append([ellipticity_bulge_init, \
 		# log_I_Bulge_init, \
@@ -95,7 +98,7 @@ for ii in np.arange(nwalkers):
 		Max_vel_bulge_init, CentralBulgeDispersion_init, alpha_Bulge_init,  \
 		# ellipticity_disc_init, \
 		log_I_Disc_init, Re_Disc_init, DiscRotationScale_init, Max_vel_disc_init, CentralDiscDispersion_init, \
-		alpha_Disc_init])
+		alpha_Disc_init, AzimuthVariationParameter_init])
 
 # print pos_RotationAndDispersion
 boundaries = [ellipticity_bulge_lower, ellipticity_bulge_upper, \
@@ -106,7 +109,7 @@ boundaries = [ellipticity_bulge_lower, ellipticity_bulge_upper, \
 	# ellipticity_disc_lower, ellipticity_disc_upper, \
 	log_I_Disc_lower, log_I_Disc_upper, Re_Disc_lower, Re_Disc_upper, DiscRotationScale_lower, DiscRotationScale_upper, \
 	Max_vel_disc_lower, Max_vel_disc_upper, CentralDiscDispersion_lower, CentralDiscDispersion_upper, \
-	alpha_Disc_lower, alpha_Disc_upper]
+	alpha_Disc_lower, alpha_Disc_upper, AzimuthVariationParameter_lower, AzimuthVariationParameter_upper]
 
 EffectiveRadius = Reff_Spitzer[GalName]
 ObservedEllipticity = 1 - b_a[GalName]

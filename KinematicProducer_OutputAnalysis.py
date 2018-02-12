@@ -40,7 +40,7 @@ def parameterExtractor(inputDict, name):
 	print 'Parameter extraction successful for', name
 	return value, lower, upper
 
-GalName = 'NGC1023'
+GalName = 'NGC3377'
 print GalName
 
 OutputFileLocation = DropboxDirectory+'Dropbox/PhD_Analysis/Analysis/Angular Momentum/Mock_Kinematics/'+str(GalName)+'/'
@@ -74,7 +74,8 @@ params = [r"$\epsilon_b$", \
 		"DiscRotScale", \
 		r"$v_d$", \
 		r"$\sigma_{c,d}$", \
-		r"$\alpha_d$"]
+		r"$\alpha_d$", \
+		r"$\theta_{\rm var}$"]
 
 triangleFilename = OutputFileLocation+str(GalName)+'_MCMCOutput_triangle.pdf'
 
@@ -99,6 +100,8 @@ Max_vel_disc, Max_vel_disc_lower, Max_vel_disc_upper = parameterExtractor(c.anal
 CentralDiscDispersion, CentralDiscDispersion_lower, CentralDiscDispersion_upper = parameterExtractor(c.analysis.get_summary(), r'$\sigma_{c,d}$')
 alpha_Disc, alpha_Disc_lower, alpha_Disc_upper = parameterExtractor(c.analysis.get_summary(), r'$\alpha_d$')
 
+AzimuthVariationParameter, AzimuthVariationParameter_lower, AzimuthVariationParameter_upper = parameterExtractor(c.analysis.get_summary(), r'$\theta_{\rm var}$')
+
 
 X, Y, Vel_Observed, VelErr_Observed, VelDisp_Observed, VelDispErr_Observed = krigingFileReadAll(ObservedGalaxyInput_Path, GalName)
 
@@ -118,9 +121,10 @@ BulgeRotationScale, BulgeRotationScale_lower, BulgeRotationScale_upper, Max_vel_
 CentralBulgeDispersion, CentralBulgeDispersion_lower, CentralBulgeDispersion_upper, alpha_Bulge, alpha_Bulge_lower, alpha_Bulge_upper, \
 log_I_Disc, log_I_Disc_lower, log_I_Disc_upper, Re_Disc, Re_Disc_lower, Re_Disc_upper, DiscRotationScale, DiscRotationScale_lower, DiscRotationScale_upper, \
 Max_vel_disc, Max_vel_disc_lower, Max_vel_disc_upper, CentralDiscDispersion, CentralDiscDispersion_lower, CentralDiscDispersion_upper, \
-alpha_Disc, alpha_Disc_lower, alpha_Disc_upper]
+alpha_Disc, alpha_Disc_lower, alpha_Disc_upper, AzimuthVariationParameter, AzimuthVariationParameter_lower, AzimuthVariationParameter_upper]
 Parameter_Header = 'e_bulge (- +), \tBulgeRotationScale (- +), \tMax_vel_bulge (- +), \tCentralBulgeDispersion (- +), \talpha_Bulge (- +), \
-\tlog_I_Disc (- +), \tRe_Disc (- +), \tDiscRotationScale (- +), \tMax_vel_disc (- +), \tCentralDiscDispersion (- +), \talpha_Disc (- +)'
+\tlog_I_Disc (- +), \tRe_Disc (- +), \tDiscRotationScale (- +), \tMax_vel_disc (- +), \tCentralDiscDispersion (- +), \talpha_Disc (- +), \
+\tAzimuthVariationParameter (- +)'
 
 # print np.c_(Parameters)
 np.savetxt(OutputFileLocation+GalName+'_Parameters.txt', Parameters, header = Parameter_Header)
@@ -153,15 +157,16 @@ building mock rotational maps.
 '''
 # transforming the Angular term
 Angles = positionAngle(X, Y, 0, 0)
-AngularTerm = np.zeros(len(Angles))
-SelOne = np.where((Angles >= 0) & (Angles <= 90))
-AngularTerm[SelOne] = np.sin(radian(Angles[SelOne] - 90))+1 
-SelTwo = np.where((Angles > 90) & (Angles <= 180))
-AngularTerm[SelTwo] = np.sin(radian(Angles[SelTwo] +90))+1 
-SelThree = np.where((Angles > 180) & (Angles <= 270))
-AngularTerm[SelThree] =  np.sin(radian(Angles[SelThree] - 90))-1 
-SelFour = np.where((Angles > 270) & (Angles <= 360))
-AngularTerm[SelFour] = np.sin(radian(Angles[SelFour] + 90))-1 
+# AngularTerm = np.zeros(len(Angles))
+# SelOne = np.where((Angles >= 0) & (Angles <= 90))
+# AngularTerm[SelOne] = np.sin(radian(Angles[SelOne] - 90))+1 
+# SelTwo = np.where((Angles > 90) & (Angles <= 180))
+# AngularTerm[SelTwo] = np.sin(radian(Angles[SelTwo] +90))+1 
+# SelThree = np.where((Angles > 180) & (Angles <= 270))
+# AngularTerm[SelThree] =  np.sin(radian(Angles[SelThree] - 90))-1 
+# SelFour = np.where((Angles > 270) & (Angles <= 360))
+# AngularTerm[SelFour] = np.sin(radian(Angles[SelFour] + 90))-1 
+AngularTerm = AngularVariationEpsilon(Angles, AzimuthVariationParameter)
 
 DiscRotation = (Max_vel_disc* Radius_Disc / (DiscRotationScale+ Radius_Disc) ) * AngularTerm
 BulgeRotation = (Max_vel_bulge* Radius_Bulge / (BulgeRotationScale+ Radius_Bulge) ) * AngularTerm
