@@ -40,7 +40,7 @@ def parameterExtractor(inputDict, name):
 	print 'Parameter extraction successful for', name
 	return value, lower, upper
 
-GalName = 'NGC3377'
+GalName = 'NGC1023'
 print GalName
 
 OutputFileLocation = DropboxDirectory+'Dropbox/PhD_Analysis/Analysis/Angular Momentum/Mock_Kinematics/'+str(GalName)+'/'
@@ -75,7 +75,8 @@ params = [r"$\epsilon_b$", \
 		r"$v_d$", \
 		r"$\sigma_{c,d}$", \
 		r"$\alpha_d$", \
-		r"$\theta_{\rm var}$"]
+		r"$\theta_{\rm b}$", \
+		r"$\theta_{\rm d}$"]
 
 triangleFilename = OutputFileLocation+str(GalName)+'_MCMCOutput_triangle.pdf'
 
@@ -100,7 +101,10 @@ Max_vel_disc, Max_vel_disc_lower, Max_vel_disc_upper = parameterExtractor(c.anal
 CentralDiscDispersion, CentralDiscDispersion_lower, CentralDiscDispersion_upper = parameterExtractor(c.analysis.get_summary(), r'$\sigma_{c,d}$')
 alpha_Disc, alpha_Disc_lower, alpha_Disc_upper = parameterExtractor(c.analysis.get_summary(), r'$\alpha_d$')
 
-AzimuthVariationParameter, AzimuthVariationParameter_lower, AzimuthVariationParameter_upper = parameterExtractor(c.analysis.get_summary(), r'$\theta_{\rm var}$')
+AzimuthVariationParameterBulge, AzimuthVariationParameterBulge_lower, AzimuthVariationParameterBulge_upper = \
+	parameterExtractor(c.analysis.get_summary(), r'$\theta_{\rm b}$')
+AzimuthVariationParameterDisc, AzimuthVariationParameterDisc_lower, AzimuthVariationParameterDisc_upper = \
+	parameterExtractor(c.analysis.get_summary(), r'$\theta_{\rm d}$')
 
 
 X, Y, Vel_Observed, VelErr_Observed, VelDisp_Observed, VelDispErr_Observed = krigingFileReadAll(ObservedGalaxyInput_Path, GalName)
@@ -121,10 +125,12 @@ BulgeRotationScale, BulgeRotationScale_lower, BulgeRotationScale_upper, Max_vel_
 CentralBulgeDispersion, CentralBulgeDispersion_lower, CentralBulgeDispersion_upper, alpha_Bulge, alpha_Bulge_lower, alpha_Bulge_upper, \
 log_I_Disc, log_I_Disc_lower, log_I_Disc_upper, Re_Disc, Re_Disc_lower, Re_Disc_upper, DiscRotationScale, DiscRotationScale_lower, DiscRotationScale_upper, \
 Max_vel_disc, Max_vel_disc_lower, Max_vel_disc_upper, CentralDiscDispersion, CentralDiscDispersion_lower, CentralDiscDispersion_upper, \
-alpha_Disc, alpha_Disc_lower, alpha_Disc_upper, AzimuthVariationParameter, AzimuthVariationParameter_lower, AzimuthVariationParameter_upper]
+alpha_Disc, alpha_Disc_lower, alpha_Disc_upper, \
+AzimuthVariationParameterBulge, AzimuthVariationParameterBulge_lower, AzimuthVariationParameterBulge_upper, \
+AzimuthVariationParameterDisc, AzimuthVariationParameterDisc_lower, AzimuthVariationParameterDisc_upper]
 Parameter_Header = 'e_bulge (- +), \tBulgeRotationScale (- +), \tMax_vel_bulge (- +), \tCentralBulgeDispersion (- +), \talpha_Bulge (- +), \
 \tlog_I_Disc (- +), \tRe_Disc (- +), \tDiscRotationScale (- +), \tMax_vel_disc (- +), \tCentralDiscDispersion (- +), \talpha_Disc (- +), \
-\tAzimuthVariationParameter (- +)'
+\tAzimuthVariationParameterBulge (- +), \tAzimuthVariationParameterDisc (- +)'
 
 # print np.c_(Parameters)
 np.savetxt(OutputFileLocation+GalName+'_Parameters.txt', Parameters, header = Parameter_Header)
@@ -166,10 +172,10 @@ Angles = positionAngle(X, Y, 0, 0)
 # AngularTerm[SelThree] =  np.sin(radian(Angles[SelThree] - 90))-1 
 # SelFour = np.where((Angles > 270) & (Angles <= 360))
 # AngularTerm[SelFour] = np.sin(radian(Angles[SelFour] + 90))-1 
-AngularTerm = AngularVariationEpsilon(Angles, AzimuthVariationParameter)
+# AngularTerm = AngularVariationEpsilon(Angles, AzimuthVariationParameter)
 
-DiscRotation = (Max_vel_disc* Radius_Disc / (DiscRotationScale+ Radius_Disc) ) * AngularTerm
-BulgeRotation = (Max_vel_bulge* Radius_Bulge / (BulgeRotationScale+ Radius_Bulge) ) * AngularTerm
+DiscRotation = (Max_vel_disc* Radius_Disc / (DiscRotationScale+ Radius_Disc) ) * AngularVariationEpsilon(Angles, AzimuthVariationParameterDisc)
+BulgeRotation = (Max_vel_bulge* Radius_Bulge / (BulgeRotationScale+ Radius_Bulge) ) * AngularVariationEpsilon(Angles, AzimuthVariationParameterBulge)
 BulgeFraction = BulgeIntensity/(BulgeIntensity+DiscIntensity)
 DiscFraction = DiscIntensity/(BulgeIntensity+DiscIntensity)
 TotalRotation = (BulgeFraction * BulgeRotation + DiscFraction * DiscRotation)

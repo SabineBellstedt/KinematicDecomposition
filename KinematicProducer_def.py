@@ -209,8 +209,8 @@ def DispersionPlottingFunction(X, Y, BulgeDispersion, DiscDispersion, TotalDispe
 
 def lnlike_RotationAndDispersion(theta, *args):
 	try:
-		ellipticity_bulge, BulgeRotationScale, Max_vel_bulge, CentralBulgeDispersion, alpha_Bulge,  \
-		log_I_Disc, Re_Disc, DiscRotationScale, Max_vel_disc, CentralDiscDispersion, alpha_Disc, AzimuthVariationParameter = theta
+		ellipticity_bulge, BulgeRotationScale, Max_vel_bulge, CentralBulgeDispersion, alpha_Bulge, log_I_Disc, \
+		Re_Disc, DiscRotationScale, Max_vel_disc, CentralDiscDispersion, alpha_Disc, AzimuthVariationParameterBulge, AzimuthVariationParameterDisc = theta
 		tmpInputArgs = args[0]
 		(X, Y, Vel_Observed, VelErr_Observed, VelDisp_Observed, VelDispErr_Observed, \
 			EffectiveRadius, ObservedEllipticity, n, Re_Bulge, mag_Bulge, Spitzer_Radius, Spitzer_Mag, Spitzer_MagErr) = tmpInputArgs
@@ -230,7 +230,6 @@ def lnlike_RotationAndDispersion(theta, *args):
 		DiscFraction_ellipticityTest = DiscIntensity_ellipticityTest / (BulgeIntensity_ellipticityTest + DiscIntensity_ellipticityTest)
 		
 		ellipticity_disc = (ObservedEllipticity - BulgeFraction_ellipticityTest*ellipticity_bulge) / DiscFraction_ellipticityTest
-		# print 'bulge ellipticity:', ellipticity_bulge, 'disc ellipticity:', ellipticity_disc
 	
 		# calculating the Chi2/dof from the fit to the luminosity profile
 		# we only want to fit the profile in the region where we have actual data
@@ -256,25 +255,10 @@ def lnlike_RotationAndDispersion(theta, *args):
 			'''
 			building mock rotational maps. 
 			'''
-			Angles = positionAngle(X, Y, 0, 0)
-			# AngularTerm = np.zeros(len(Angles))
-			AngularTerm = AngularVariationEpsilon(Angles, AzimuthVariationParameter)
-			# SelOne = np.where((Angles >= 0) & (Angles <= 90))
-			# AngularTerm[SelOne] = np.sin(radian(Angles[SelOne] - 90))+1 
-		
-			# SelTwo = np.where((Angles > 90) & (Angles <= 180))
-			# AngularTerm[SelTwo] = np.sin(radian(Angles[SelTwo] +90))+1 
-		
-			# SelThree = np.where((Angles > 180) & (Angles <= 270))
-			# AngularTerm[SelThree] =  np.sin(radian(Angles[SelThree] - 90))-1 
-		
-			# SelFour = np.where((Angles > 270) & (Angles <= 360))
-			# AngularTerm[SelFour] = np.sin(radian(Angles[SelFour] + 90))-1 
-		
-		
+			Angles = positionAngle(X, Y, 0, 0)		
 			
-			DiscRotation = (Max_vel_disc* Radius_Disc / (DiscRotationScale + Radius_Disc) ) * AngularTerm
-			BulgeRotation = (Max_vel_bulge* Radius_Bulge / (BulgeRotationScale + Radius_Bulge) ) * AngularTerm
+			DiscRotation = (Max_vel_disc* Radius_Disc / (DiscRotationScale + Radius_Disc) ) * AngularVariationEpsilon(Angles, AzimuthVariationParameterDisc)
+			BulgeRotation = (Max_vel_bulge* Radius_Bulge / (BulgeRotationScale + Radius_Bulge) ) * AngularVariationEpsilon(Angles, AzimuthVariationParameterBulge)
 			BulgeFraction = BulgeIntensity/(BulgeIntensity+DiscIntensity)
 			DiscFraction = DiscIntensity/(BulgeIntensity+DiscIntensity)
 			TotalRotation = (BulgeFraction * BulgeRotation + DiscFraction * DiscRotation)
@@ -312,36 +296,32 @@ def lnlike_RotationAndDispersion(theta, *args):
 
 def lnprior_RotationAndDispersion(theta, *args): #p(m, b, f)
     ellipticity_bulge, BulgeRotationScale, Max_vel_bulge, CentralBulgeDispersion, alpha_Bulge,\
-    log_I_Disc, Re_Disc, DiscRotationScale, Max_vel_disc, CentralDiscDispersion, alpha_Disc, AzimuthVariationParameter = theta
+    log_I_Disc, Re_Disc, DiscRotationScale, Max_vel_disc, CentralDiscDispersion, alpha_Disc, AzimuthVariationParameterBulge, AzimuthVariationParameterDisc = theta
 
     tmpInputArgs = args[0] 
     (ellipticity_bulge_lower, ellipticity_bulge_upper, \
-    	# log_I_Bulge_lower, log_I_Bulge_upper, \
     	BulgeRotationScale_lower, BulgeRotationScale_upper, \
     	Max_vel_bulge_lower, Max_vel_bulge_upper, CentralBulgeDispersion_lower, CentralBulgeDispersion_upper, \
     	alpha_Bulge_lower, alpha_Bulge_upper,  \
-    	# ellipticity_disc_lower, ellipticity_disc_upper, \
     	log_I_Disc_lower, log_I_Disc_upper, Re_Disc_lower, Re_Disc_upper, \
     	DiscRotationScale_lower, DiscRotationScale_upper, Max_vel_disc_lower, Max_vel_disc_upper, \
     	CentralDiscDispersion_lower, CentralDiscDispersion_upper, alpha_Disc_lower, alpha_Disc_upper,  \
-    	AzimuthVariationParameter_lower, AzimuthVariationParameter_upper \
-    	# gamma_Disc_lower, gamma_Disc_upper\
+    	AzimuthVariationParameterBulge_lower, AzimuthVariationParameterBulge_upper, \
+    	AzimuthVariationParameterDisc_lower, AzimuthVariationParameterDisc_upper \
     	) = tmpInputArgs
 
     if ((ellipticity_bulge_lower <= ellipticity_bulge <= ellipticity_bulge_upper) and \
-    	# (log_I_Bulge_lower <= log_I_Bulge <= log_I_Bulge_upper) and \
     	(BulgeRotationScale_lower <= BulgeRotationScale <= BulgeRotationScale_upper) and \
     	(Max_vel_bulge_lower <= Max_vel_bulge <= Max_vel_bulge_upper) and \
     	(CentralBulgeDispersion_lower <= CentralBulgeDispersion <= CentralBulgeDispersion_upper) and \
     	(alpha_Bulge_lower <= alpha_Bulge <= alpha_Bulge_upper) and  \
-    	# (gamma_Bulge_lower <= gamma_Bulge <= gamma_Bulge_upper) and
-    	# (ellipticity_disc_lower <= ellipticity_disc <= ellipticity_disc_upper) and \
     	(log_I_Disc_lower <= log_I_Disc <= log_I_Disc_upper) and \
     	(Re_Disc_lower <= Re_Disc <= Re_Disc_upper) and (DiscRotationScale_lower <= DiscRotationScale <= DiscRotationScale_upper) and \
     	(Max_vel_disc_lower <= Max_vel_disc <= Max_vel_disc_upper) and \
     	(CentralDiscDispersion_lower <= CentralDiscDispersion <= CentralDiscDispersion_upper) and \
     	(alpha_Disc_lower <= alpha_Disc <= alpha_Disc_upper) and \
-    	(AzimuthVariationParameter_lower <= AzimuthVariationParameter <= AzimuthVariationParameter_upper)):
+    	(AzimuthVariationParameterBulge_lower <= AzimuthVariationParameterBulge <= AzimuthVariationParameterBulge_upper) and \
+    	(AzimuthVariationParameterDisc_lower <= AzimuthVariationParameterDisc <= AzimuthVariationParameterDisc_upper)):
         return 0.
     else:
         return -np.inf

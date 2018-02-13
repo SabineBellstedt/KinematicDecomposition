@@ -38,78 +38,61 @@ X, Y, Vel_Observed, VelErr_Observed, VelDisp_Observed, VelDispErr_Observed = kri
 	
 t0 = time.time()
 
-ndim, nwalkers = 12, 1000 # NUMBER OF WALKERS
+ndim, nwalkers = 13, 1000 # NUMBER OF WALKERS
 
 
 # setting the upper and lower bounds on the prior ranges of each parameter
 ellipticity_bulge_lower, ellipticity_bulge_upper = 0.0, 0.8 # we want this to be fairly round...
-# log_I_Bulge_lower, log_I_Bulge_upper = np.log10(1e-9), np.log10(1e4)
-# n_lower, n_upper = 3., 4.
-# Re_Bulge_lower, Re_Bulge_upper = 10, 100
 BulgeRotationScale_lower, BulgeRotationScale_upper = 1, 50
 Max_vel_bulge_lower, Max_vel_bulge_upper = -100, 100 # don't expect the bulge component to be rotating
 CentralBulgeDispersion_lower, CentralBulgeDispersion_upper = 0, 300 # dispersion at R_e/2
 alpha_Bulge_lower, alpha_Bulge_upper = 0, 0.2 # power law slope
-# beta_Bulge_lower, beta_Bulge_upper = -5, 0 # slope of velocity dispersion profile
-# gamma_Bulge_lower, gamma_Bulge_upper = -2, 0
 
-# ellipticity_disc_lower, ellipticity_disc_upper = 0.5, 1.0
-log_I_Disc_lower, log_I_Disc_upper = np.log10(1e-7), np.log10(1e2)
+
+log_I_Disc_lower, log_I_Disc_upper = np.log10(1e-8), np.log10(1e2)
 Re_Disc_lower, Re_Disc_upper = 0, 100
 DiscRotationScale_lower, DiscRotationScale_upper = 1, 50
 Max_vel_disc_lower, Max_vel_disc_upper = -400, 400
 CentralDiscDispersion_lower, CentralDiscDispersion_upper = 0, 300 # dispersion at R_e/2
 alpha_Disc_lower, alpha_Disc_upper = 0, 0.5 # power law slope
-# beta_Disc_lower, beta_Disc_upper = -5, 0 # slope of velocity dispersion profile
-# gamma_Disc_lower, gamma_Disc_upper = -2, 0
 
-AzimuthVariationParameter_lower, AzimuthVariationParameter_upper = -1.0, 1.0
+AzimuthVariationParameterBulge_lower, AzimuthVariationParameterBulge_upper = -1.0, 1.0
+AzimuthVariationParameterDisc_lower, AzimuthVariationParameterDisc_upper = -1.0, 1.0
 
 
 # defining the initial position of the walkers
 pos_RotationAndDispersion = []
 for ii in np.arange(nwalkers):  
 	ellipticity_bulge_init = np.random.uniform(low=ellipticity_bulge_lower, high=ellipticity_bulge_upper) 
-	# log_I_Bulge_init = np.random.uniform(low=log_I_Bulge_lower, high=log_I_Bulge_upper) # sample in log space
-	# n_init = np.random.uniform(low=n_lower, high=n_upper) 
-	# Re_Bulge_init = np.random.uniform(low=Re_Bulge_lower, high=Re_Bulge_upper) 
 	BulgeRotationScale_init = np.random.uniform(low=BulgeRotationScale_lower, high=BulgeRotationScale_upper) 
 	Max_vel_bulge_init = np.random.uniform(low=Max_vel_bulge_lower, high=Max_vel_bulge_upper) 
 	CentralBulgeDispersion_init = np.random.uniform(low=CentralBulgeDispersion_lower, high=CentralBulgeDispersion_upper) 
 	alpha_Bulge_init = np.random.uniform(low=alpha_Bulge_lower, high=alpha_Bulge_upper) 
-	# beta_Bulge_init = np.random.uniform(low=beta_Bulge_lower, high=beta_Bulge_upper) 
-	# gamma_Bulge_init = np.random.uniform(low=gamma_Bulge_lower, high=gamma_Bulge_upper) 
 
-	# ellipticity_disc_init = np.random.uniform(low=ellipticity_disc_lower, high=ellipticity_disc_upper) 
 	log_I_Disc_init = np.random.uniform(low=log_I_Disc_lower, high=log_I_Disc_upper) # sample in log space
 	Re_Disc_init = np.random.uniform(low=Re_Disc_lower, high=Re_Disc_upper) 
 	DiscRotationScale_init = np.random.uniform(low=DiscRotationScale_lower, high=DiscRotationScale_upper) 
 	Max_vel_disc_init = np.random.uniform(low=Max_vel_disc_lower, high=Max_vel_disc_upper) 
 	CentralDiscDispersion_init = np.random.uniform(low=CentralDiscDispersion_lower, high=CentralDiscDispersion_upper) 
 	alpha_Disc_init = np.random.uniform(low=alpha_Disc_lower, high=alpha_Disc_upper) 
-	# beta_Disc_init = np.random.uniform(low=beta_Disc_lower, high=beta_Disc_upper) 
-	# gamma_Disc_init = np.random.uniform(low=gamma_Disc_lower, high=gamma_Disc_upper) 
-	AzimuthVariationParameter_init = np.random.uniform(low=AzimuthVariationParameter_lower, high=AzimuthVariationParameter_upper) 
+
+	AzimuthVariationParameterBulge_init = np.random.uniform(low=AzimuthVariationParameterBulge_lower, high=AzimuthVariationParameterBulge_upper) 
+	AzimuthVariationParameterDisc_init = np.random.uniform(low=AzimuthVariationParameterDisc_lower, high=AzimuthVariationParameterDisc_upper) 
 
 	pos_RotationAndDispersion.append([ellipticity_bulge_init, \
-		# log_I_Bulge_init, \
-		# Re_Bulge_init, \
 		BulgeRotationScale_init, \
 		Max_vel_bulge_init, CentralBulgeDispersion_init, alpha_Bulge_init,  \
-		# ellipticity_disc_init, \
 		log_I_Disc_init, Re_Disc_init, DiscRotationScale_init, Max_vel_disc_init, CentralDiscDispersion_init, \
-		alpha_Disc_init, AzimuthVariationParameter_init])
+		alpha_Disc_init, AzimuthVariationParameterBulge_init, AzimuthVariationParameterDisc_init])
 
 # print pos_RotationAndDispersion
 boundaries = [ellipticity_bulge_lower, ellipticity_bulge_upper, \
-	# log_I_Bulge_lower, log_I_Bulge_upper, \
-	# n_lower, n_upper, Re_Bulge_lower, Re_Bulge_upper, \
 	BulgeRotationScale_lower, BulgeRotationScale_upper, Max_vel_bulge_lower, Max_vel_bulge_upper, \
 	CentralBulgeDispersion_lower, CentralBulgeDispersion_upper, alpha_Bulge_lower, alpha_Bulge_upper, \
-	# ellipticity_disc_lower, ellipticity_disc_upper, \
 	log_I_Disc_lower, log_I_Disc_upper, Re_Disc_lower, Re_Disc_upper, DiscRotationScale_lower, DiscRotationScale_upper, \
 	Max_vel_disc_lower, Max_vel_disc_upper, CentralDiscDispersion_lower, CentralDiscDispersion_upper, \
-	alpha_Disc_lower, alpha_Disc_upper, AzimuthVariationParameter_lower, AzimuthVariationParameter_upper]
+	alpha_Disc_lower, alpha_Disc_upper, \
+	AzimuthVariationParameterBulge_lower, AzimuthVariationParameterBulge_upper, AzimuthVariationParameterDisc_lower, AzimuthVariationParameterDisc_upper]
 
 EffectiveRadius = Reff_Spitzer[GalName]
 ObservedEllipticity = 1 - b_a[GalName]
@@ -151,8 +134,4 @@ print 'output filename: ', OutputFilename
 fileOut = open(OutputFilename, 'wb')
 pickle.dump([sampler.chain, sampler.flatchain, sampler.lnprobability, sampler.flatlnprobability], fileOut)
 fileOut.close()
-
-# Making a notes file, if needed. 
-# file=open('', 'w')
-# file.write('\n')
  
