@@ -160,6 +160,27 @@ def RotationPlottingFunction(X, Y, BulgeRotationField, DiscRotationField, TotalR
 	plt.savefig(filename.split('.pdf')[0]+'_Residual.pdf')
 	plt.close()
 
+def RelativeResidualPlottingFunction(X, Y, ModelProperty, ObservedProperty, ObservedPropertyErr, \
+	HalfLightRadius, AxialRatio, Linewidth_parameter = 0.8, filename = 'RelativeResidual.pdf'):
+
+	fig=plt.figure(figsize=(5, 3))
+	ax1=fig.add_subplot(111, aspect = 'equal')
+	ax1.pcolor(X, Y, (ObservedProperty-ModelProperty) / ObservedPropertyErr, cmap = 'coolwarm', vmin=-20, vmax=20)
+	CS1 = ax1.contour(X, Y, (ObservedProperty-ModelProperty) / ObservedPropertyErr, colors='k', linewidths = Linewidth_parameter)
+	ax1.clabel(CS1, fontsize=7, inline=1)
+	ax1.set_title('Relative Rotation Residual')
+
+	radii = [1, 2, 3, 4]
+	ellipses = [Ellipse(xy=[0,0], width=(2.*jj*HalfLightRadius/np.sqrt(AxialRatio)), 
+		height=(2.*jj*HalfLightRadius*np.sqrt(AxialRatio)), angle=0, 
+		edgecolor = 'white', facecolor = 'none', fill = False, linestyle = 'dashed', linewidth = 2) for jj in radii]
+	for ee in ellipses:
+		ax1.add_artist(ee)
+	plt.subplots_adjust(left = 0.05, right = 0.95, hspace = 0., wspace = 0.01)
+	plt.savefig(filename.split('.pdf')[0]+'_RelativeResidual.pdf')
+	plt.close()
+
+
 def DispersionPlottingFunction(X, Y, BulgeDispersion, DiscDispersion, TotalDispersion, ObservedDispersion, MinimumDispersion, MaximumDispersion, \
 	HalfLightRadius, AxialRatio, Linewidth_parameter = 0.8, filename = 'DispersionTest.pdf'):
 	fig=plt.figure(figsize=(11, 3))

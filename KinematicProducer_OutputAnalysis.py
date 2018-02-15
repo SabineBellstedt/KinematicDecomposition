@@ -1,19 +1,5 @@
 '''
-This code is designed to produce mock kinematics based on a number of bulge and disc parameters. 
 
-
-There are a number of things that will go into the production of mock kinematics. 
-1) Photometric bulge-disc decompositions. 
-	These will inform the code what portion of the galaxy light is made up of bulge or disc 
-	at any given radius. 
-2) Exponential light profile for the disc
-3) Sersic light profile for the bulge. 
-4) Bulge velocity dispersion (can make a free parameter)
-5) Expression for the rotational velocity profile for a disc
-6) Maximum rotational velocity (can make a free parameter)
-
-At the end of the mock kinematics, a mock kriging map will be produced, which can be compared with the kriging map 
-produced from observed data. 
 '''
 
 # retrieve dictionaries
@@ -40,7 +26,7 @@ def parameterExtractor(inputDict, name):
 	print 'Parameter extraction successful for', name
 	return value, lower, upper
 
-GalName = 'NGC1023'
+GalName = 'NGC4459'
 print GalName
 
 OutputFileLocation = DropboxDirectory+'Dropbox/PhD_Analysis/Analysis/Angular Momentum/Mock_Kinematics/'+str(GalName)+'/'
@@ -325,12 +311,19 @@ X_Observed, Y_Observed, Vel_Observed, VelErr_Observed, VelDisp_Observed, VelDisp
 
 Vel_Observed = np.array(Vel_Observed).reshape(sizeMapx,sizeMapy)
 VelDisp_Observed = np.array(VelDisp_Observed).reshape(sizeMapx,sizeMapy)
+VelErr_Observed = np.array(VelErr_Observed).reshape(sizeMapx,sizeMapy)
+VelDispErr_Observed = np.array(VelDispErr_Observed).reshape(sizeMapx,sizeMapy)
 
 IntensityPlottingFunction(X, Y, BulgeIntensity, DiscIntensity, TotalIntensity, sizeMapx, sizeMapy, phi, Ellipticity, \
 	EffectiveRadius, filename = OutputFileLocation+str(GalName)+'_MCMCOutput_Photometry.pdf')
 RotationPlottingFunction(X, Y, BulgeRotationField, DiscRotationField, TotalRotation, Vel_Observed, MinimumRotation, MaximumRotation, \
 	EffectiveRadius, 1-Ellipticity, filename = OutputFileLocation+str(GalName)+'_MCMCOutput_Velocity.pdf')
 DispersionPlottingFunction(X, Y, BulgeDispersion, DiscDispersion, TotalDispersion, VelDisp_Observed, MinimumDispersion, MaximumDispersion, \
+	EffectiveRadius, 1-Ellipticity, filename = OutputFileLocation+str(GalName)+'_MCMCOutput_Dispersion.pdf')
+
+RelativeResidualPlottingFunction(X, Y, TotalRotation, Vel_Observed, VelErr_Observed, \
+	EffectiveRadius, 1-Ellipticity, filename = OutputFileLocation+str(GalName)+'_MCMCOutput_Velocity.pdf')
+RelativeResidualPlottingFunction(X, Y, TotalDispersion, VelDisp_Observed, VelDispErr_Observed, \
 	EffectiveRadius, 1-Ellipticity, filename = OutputFileLocation+str(GalName)+'_MCMCOutput_Dispersion.pdf')
 
 

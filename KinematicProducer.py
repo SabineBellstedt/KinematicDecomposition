@@ -31,7 +31,7 @@ from Sabine_Define import *
 from KinematicProducer_def import *
 
 
-GalName = 'NGC3377'
+GalName = 'NGC821'
 # instead of sampling a given range, I now sample the same pixels as given for an observed galaxy. 
 ObservedGalaxyInput_Path = os.path.abspath(DropboxDirectory+'Dropbox/PhD_Analysis/Analysis/Angular Momentum/Mock_Kinematics')+'/'
 X, Y, Vel_Observed, VelErr_Observed, VelDisp_Observed, VelDispErr_Observed = krigingFileReadAll(ObservedGalaxyInput_Path, GalName)
@@ -42,7 +42,7 @@ ndim, nwalkers = 13, 1000 # NUMBER OF WALKERS
 
 
 # setting the upper and lower bounds on the prior ranges of each parameter
-ellipticity_bulge_lower, ellipticity_bulge_upper = 0.0, 0.8 # we want this to be fairly round...
+ellipticity_bulge_lower, ellipticity_bulge_upper = 0.0, 0.6 # we want this to be fairly round...
 BulgeRotationScale_lower, BulgeRotationScale_upper = 1, 50
 Max_vel_bulge_lower, Max_vel_bulge_upper = -100, 100 # don't expect the bulge component to be rotating
 CentralBulgeDispersion_lower, CentralBulgeDispersion_upper = 0, 300 # dispersion at R_e/2
@@ -109,11 +109,11 @@ sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob_RotationAndDispersion,
                   threads=16) #Threads gives the number of processors to use
 
 ############ implementing a burn-in period ###########
-burnSteps = 200
+burnSteps = 1000
 pos, prob, state = sampler.run_mcmc(pos_RotationAndDispersion, burnSteps)
 sampler.reset()
 
-stepNumber = 2000
+stepNumber = 4000
 outputMCMC = sampler.run_mcmc(pos, stepNumber) # uses the final position of the burn-in period as the starting point. 
 ######################################################
 
