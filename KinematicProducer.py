@@ -31,10 +31,15 @@ from Sabine_Define import *
 from KinematicProducer_def import *
 
 
-GalName = 'NGC3607'
+GalName = 'NGC1023'
+KrigingInput = False
 # instead of sampling a given range, I now sample the same pixels as given for an observed galaxy. 
 ObservedGalaxyInput_Path = os.path.abspath(DropboxDirectory+'Dropbox/PhD_Analysis/Analysis/Angular Momentum/Mock_Kinematics')+'/'
-X, Y, Vel_Observed, VelErr_Observed, VelDisp_Observed, VelDispErr_Observed = krigingFileReadAll(ObservedGalaxyInput_Path, GalName)
+if KrigingInput:
+	X, Y, Vel_Observed, VelErr_Observed, VelDisp_Observed, VelDispErr_Observed = krigingFileReadAll(ObservedGalaxyInput_Path, GalName)
+else:
+	InputDataFilename = ObservedGalaxyInput_Path+str(GalName)+'/MockKinematics_Input_'+str(GalName)+'_SLUGGS.txt'
+	X, Y, Vel_Observed, VelErr_Observed, VelDisp_Observed, VelDispErr_Observed = np.loadtxt(InputDataFilename, unpack = True, comments = '#')
 	
 t0 = time.time()
 
