@@ -355,3 +355,113 @@ def lnprob_RotationAndDispersion(theta, *args):
 	if not np.isfinite(lp):
 	    return -np.inf
 	return lp + lnlike_RotationAndDispersion(theta, arg2) #In logarithmic space, the multiplication becomes sum.
+
+def lnlike_RotationAndDispersion_sims(theta, *args):
+	try:
+		log_I_Bulge, Re_Bulge, ellipticity_bulge, n, BulgeRotationScale, Max_vel_bulge, CentralBulgeDispersion, alpha_Bulge, log_I_Disc, \
+		Re_Disc, ellipticity_disc, DiscRotationScale, Max_vel_disc, CentralDiscDispersion, alpha_Disc, AzimuthVariationParameterBulge, AzimuthVariationParameterDisc = theta
+		tmpInputArgs = args[0]
+		(X, Y, Vel_Observed, VelErr_Observed, VelDisp_Observed, VelDispErr_Observed) = tmpInputArgs
+		PA = 90*np.pi/180
+		phi=(PA-np.pi/2.0) # accounting for the different 0 PA convention in astronomy to mathematics
+		log_I_Bulge = -mag_Bulge / 2.5
+
+		Radius_Bulge, Radius_Disc = ComponentRadiusFunction(X, Y, phi, ellipticity_bulge, ellipticity_disc)
+		
+		'''
+		set up the phyical distribution of points from a bulge component with a sersic profile
+		'''
+		BulgeIntensity = BulgeIntensityFunction(log_I_Bulge, Radius_Bulge, Re_Bulge, n)
+		
+		'''
+		set up the phyical distribution of points from a disc component with an exponential profile
+		'''
+		DiscIntensity = DiscIntensityFunction(log_I_Disc, Radius_Disc, Re_Disc)
+		
+		'''
+		building mock rotational maps. 
+		'''
+		Angles = positionAngle(X, Y, 0, 0)		
+		
+		DiscRotation = (Max_vel_disc* Radius_Disc / (DiscRotationScale + Radius_Disc) ) * AngularVariationEpsilon(Angles, AzimuthVariationParameterDisc)
+		BulgeRotation = (Max_vel_bulge* Radius_Bulge / (BulgeRotationScale + Radius_Bulge) ) * AngularVariationEpsilon(Angles, AzimuthVariationParameterBulge)
+		BulgeFraction = BulgeIntensity/(BulgeIntensity+DiscIntensity)
+		DiscFraction = DiscIntensity/(BulgeIntensity+DiscIntensity)
+		TotalRotation = (BulgeFraction * BulgeRotation + DiscFraction * DiscRotation)
+		
+		
+		'''
+		Calculating the velocity dispersions
+		'''
+		# using the power law equation as given by Cappellari et al (2006)
+		BulgeDispersion = CentralBulgeDispersion * Radius_Bulge**(-alpha_Bulge)
+		DiscDispersion = CentralDiscDispersion * Radius_Disc**(-alpha_Disc)
+		
+		# check that the dispersion profiles never go below 0
+		BulgeDispersion[np.where(BulgeDispersion < 0)] = 0
+		DiscDispersion[np.where(DiscDispersion < 0)] = 0
+		
+		TotalDispersion = BulgeDispersion * BulgeFraction + DiscDispersion * DiscFraction
+		
+		#calculating the central intensity of light, as a normalisation factor. 
+		PeakIntensity = BulgeIntensity[np.where((X == 0) & (Y == 0))] + DiscIntensity[np.where((X == 0) & (Y == 0))]
+		
+		
+		
+		# calculating the chi-squared of the match of the rotation field and dispersion field to the observed galaxy
+		ObservedSel = np.where(np.isfinite(Vel_Observed))
+		Chi2Rot = np.sum( (Vel_Observed[ObservedSel] - TotalRotation[ObservedSel])**2/(VelErr_Observed[ObservedSel]**2) ) 
+		Chi2Disp = np.sum( (VelDisp_Observed[ObservedSel] - TotalDispersion[ObservedSel])**2/(VelDispErr_Observed[ObservedSel])**2 )
+		
+		Chi2Total = Chi2Rot + Chi2Disp
+		# print Chi2Rot, Chi2Disp
+	except:
+		Chi2Total = np.inf
+	return -Chi2Total/2
+
+
+def lnprior_RotationAndDispersion_sims(theta, *args): #p(m, b, f)
+    log_I_Bulge, Re_Bulge, ellipticity_bulge, n, BulgeRotationScale, Max_vel_bulge, CentralBulgeDispersion, alpha_Bulge,\
+    log_I_Disc, Re_Disc, ellipticity_disc, DiscRotationScale, Max_vel_disc, CentralDiscDispersion, alpha_Disc, \
+    AzimuthVariationParameterBulge, AzimuthVariationParameterDisc = theta
+
+    tmpInputArgs = args[0] 
+    (log_I_Bulge_lower, log_I_Bulge_upper, Re_Bulge_lower, Re_Bulge_upper, ellipticity_bulge_lower, ellipticity_bulge_upper, \
+    	n_lower, n_upper, BulgeRotationScale_lower, BulgeRotationScale_upper, \
+    	Max_vel_bulge_lower, Max_vel_bulge_upper, CentralBulgeDispersion_lower, CentralBulgeDispersion_upper, \
+    	alpha_Bulge_lower, alpha_Bulge_upper,  \
+    	log_I_Disc_lower, log_I_Disc_upper, Re_Disc_lower, Re_Disc_upper, ellipticity_disc_lower, ellipticity_disc_upper, \
+    	DiscRotationScale_lower, DiscRotationScale_upper, Max_vel_disc_lower, Max_vel_disc_upper, \
+    	CentralDiscDispersion_lower, CentralDiscDispersion_upper, alpha_Disc_lower, alpha_Disc_upper,  \
+    	AzimuthVariationParameterBulge_lower, AzimuthVariationParameterBulge_upper, \
+    	AzimuthVariationParameterDisc_lower, AzimuthVariationParameterDisc_upper \
+    	) = tmpInputArgs
+
+    if ((log_I_Bulge_lower <= log_I_Bulge <= log_I_Bulge_upper) and \
+    	(Re_Bulge_lower <= Re_Bulge <= Re_Bulge_upper) and \
+    	(ellipticity_bulge_lower <= ellipticity_bulge <= ellipticity_bulge_upper) and \
+    	(n_lower <= n <= n_upper) and \
+    	(BulgeRotationScale_lower <= BulgeRotationScale <= BulgeRotationScale_upper) and \
+    	(Max_vel_bulge_lower <= Max_vel_bulge <= Max_vel_bulge_upper) and \
+    	(CentralBulgeDispersion_lower <= CentralBulgeDispersion <= CentralBulgeDispersion_upper) and \
+    	(alpha_Bulge_lower <= alpha_Bulge <= alpha_Bulge_upper) and  \
+    	(log_I_Disc_lower <= log_I_Disc <= log_I_Disc_upper) and \
+    	(Re_Disc_lower <= Re_Disc <= Re_Disc_upper) and (ellipticity_disc_lower <= ellipticity_disc <= ellipticity_disc_upper) and \
+    	(DiscRotationScale_lower <= DiscRotationScale <= DiscRotationScale_upper) and \
+    	(Max_vel_disc_lower <= Max_vel_disc <= Max_vel_disc_upper) and \
+    	(CentralDiscDispersion_lower <= CentralDiscDispersion <= CentralDiscDispersion_upper) and \
+    	(alpha_Disc_lower <= alpha_Disc <= alpha_Disc_upper) and \
+    	(AzimuthVariationParameterBulge_lower <= AzimuthVariationParameterBulge <= AzimuthVariationParameterBulge_upper) and \
+    	(AzimuthVariationParameterDisc_lower <= AzimuthVariationParameterDisc <= AzimuthVariationParameterDisc_upper)):
+        return 0.
+    else:
+        return -np.inf
+
+def lnprob_RotationAndDispersion_sims(theta, *args):
+	arg1 = args[0]
+	arg2 = args[1:]
+
+	lp = lnprior_RotationAndDispersion_sims(theta, arg1)
+	if not np.isfinite(lp):
+	    return -np.inf
+	return lp + lnlike_RotationAndDispersion_sims(theta, arg2) #In logarithmic space, the multiplication becomes sum.
