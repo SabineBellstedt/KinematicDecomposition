@@ -33,21 +33,42 @@ from KinematicProducer_def import *
 
 GalName = 'NGC1023'
 KrigingInput = False
+ExistingPhotometry = True
+TwoDatasets = True
+Magneticum = False
+
+
 # instead of sampling a given range, I now sample the same pixels as given for an observed galaxy. 
 ObservedGalaxyInput_Path = os.path.abspath(DropboxDirectory+'Dropbox/PhD_Analysis/Analysis/Angular Momentum/Mock_Kinematics')+'/'
 if KrigingInput:
 	X, Y, Vel_Observed, VelErr_Observed, VelDisp_Observed, VelDispErr_Observed = krigingFileReadAll(ObservedGalaxyInput_Path, GalName)
+elif Magneticum:
+	pathMajor = DropboxDirectory+'Dropbox/PhD_Analysis/Data/MagneticumGalaxies/'+GalName+'_vor.dat'
+	X, Y, Vel_Observed, VelErr_Observed = np.loadtxt(pathMajor, skiprows = 1, unpack = True, usecols = [0, 1, 2, 3])
+	VelDisp_Observed, VelDispErr_Observed = 2 * np.ones(len(X)), 2 * np.ones(len(X)) # There are no uncertainties associated with the maps, at least not currently. 
+																					 # Hence currently I am using a low "dummy" value. 
+																					 # Need to clarify with Felix at some point whether as estimate has been made
+																					 # as to the uncertainties that arise in the projected kinematics from numerical
+																					 # resolution origin. 
 else:
 	InputDataFilename = ObservedGalaxyInput_Path+str(GalName)+'/MockKinematics_Input_'+str(GalName)+'_SLUGGS.txt'
 	X, Y, Vel_Observed, VelErr_Observed, VelDisp_Observed, VelDispErr_Observed = np.loadtxt(InputDataFilename, unpack = True, comments = '#')
-	
-t0 = time.time()
 
-ExistingPhotometry = True
+if TwoDatasets:
+	InputDataFilename = ObservedGalaxyInput_Path+str(GalName)+'/MockKinematics_Input_'+str(GalName)+'_ATLAS3D.txt'
+	X_2, Y_2, Vel_Observed_2, VelErr_Observed_2, VelDisp_Observed_2, VelDispErr_Observed_2 = np.loadtxt(InputDataFilename, unpack = True, comments = '#')
+	
+t0 = time.time() # record the time to output how long the total run took. 
+
 
 if ExistingPhotometry:
 
-	ndim, nwalkers = 13, 1000 # NUMBER OF WALKERS
+	if TwoDatasets:
+		ndim, nwalkers = 15, 1000 # NUMBER OF WALKERS
+								  # if both datasets are being used, then two hyperparameters are required, which increases
+								  # the number of free parameters. 
+	else:
+		ndim, nwalkers = 13, 1000 # NUMBER OF WALKERS
 	
 	
 	# setting the upper and lower bounds on the prior ranges of each parameter
@@ -67,6 +88,13 @@ if ExistingPhotometry:
 	
 	AzimuthVariationParameterBulge_lower, AzimuthVariationParameterBulge_upper = -1.0, 1.0
 	AzimuthVariationParameterDisc_lower, AzimuthVariationParameterDisc_upper = -1.0, 1.0
+
+	if TwoDatasets:
+		# need to define the two hyperparameters for each dataset
+		sluggsWeight_lower, sluggsWeight_upper = 0, 10
+		atlasWeight_lower, atlasWeight_upper = 0, 10
+		sluggsWeightPrior_lower, sluggsWeightPrior_upper = np.exp(-sluggsWeight_upper), np.exp(sluggsWeight_lower)
+		atlasWeightPrior_lower, atlasWeightPrior_upper = np.exp(-atlasWeight_upper), np.exp(atlasWeight_lower)
 	
 	
 	# defining the initial position of the walkers
@@ -87,35 +115,68 @@ if ExistingPhotometry:
 	
 		AzimuthVariationParameterBulge_init = np.random.uniform(low=AzimuthVariationParameterBulge_lower, high=AzimuthVariationParameterBulge_upper) 
 		AzimuthVariationParameterDisc_init = np.random.uniform(low=AzimuthVariationParameterDisc_lower, high=AzimuthVariationParameterDisc_upper) 
+
+		if TwoDatasets:
+			sluggsWeightPrior = (np.random.uniform(low=sluggsWeightPrior_lower, high=sluggsWeightPrior_upper))   # uniform sampling in expoential space
+			atlasWeightPrior = (np.random.uniform(low=atlasWeightPrior_lower, high=atlasWeightPrior_upper)) # uniform sampling in exponential space  
+			sluggsWeight = -np.log(sluggsWeightPrior)
+			atlasWeight = -np.log(atlasWeightPrior)
+
+			pos_RotationAndDispersion.append([ellipticity_bulge_init, \
+				BulgeRotationScale_init, \
+				Max_vel_bulge_init, CentralBulgeDispersion_init, alpha_Bulge_init,  \
+				log_I_Disc_init, Re_Disc_init, DiscRotationScale_init, Max_vel_disc_init, CentralDiscDispersion_init, \
+				alpha_Disc_init, AzimuthVariationParameterBulge_init, AzimuthVariationParameterDisc_init, \
+				sluggsWeight, atlasWeight])
 	
-		pos_RotationAndDispersion.append([ellipticity_bulge_init, \
-			BulgeRotationScale_init, \
-			Max_vel_bulge_init, CentralBulgeDispersion_init, alpha_Bulge_init,  \
-			log_I_Disc_init, Re_Disc_init, DiscRotationScale_init, Max_vel_disc_init, CentralDiscDispersion_init, \
-			alpha_Disc_init, AzimuthVariationParameterBulge_init, AzimuthVariationParameterDisc_init])
+		else:
+			pos_RotationAndDispersion.append([ellipticity_bulge_init, \
+				BulgeRotationScale_init, \
+				Max_vel_bulge_init, CentralBulgeDispersion_init, alpha_Bulge_init,  \
+				log_I_Disc_init, Re_Disc_init, DiscRotationScale_init, Max_vel_disc_init, CentralDiscDispersion_init, \
+				alpha_Disc_init, AzimuthVariationParameterBulge_init, AzimuthVariationParameterDisc_init])
 	
 	# print pos_RotationAndDispersion
-	boundaries = [ellipticity_bulge_lower, ellipticity_bulge_upper, \
-		BulgeRotationScale_lower, BulgeRotationScale_upper, Max_vel_bulge_lower, Max_vel_bulge_upper, \
-		CentralBulgeDispersion_lower, CentralBulgeDispersion_upper, alpha_Bulge_lower, alpha_Bulge_upper, \
-		log_I_Disc_lower, log_I_Disc_upper, Re_Disc_lower, Re_Disc_upper, DiscRotationScale_lower, DiscRotationScale_upper, \
-		Max_vel_disc_lower, Max_vel_disc_upper, CentralDiscDispersion_lower, CentralDiscDispersion_upper, \
-		alpha_Disc_lower, alpha_Disc_upper, \
-		AzimuthVariationParameterBulge_lower, AzimuthVariationParameterBulge_upper, AzimuthVariationParameterDisc_lower, AzimuthVariationParameterDisc_upper]
+	if TwoDatasets:
+		boundaries = [ellipticity_bulge_lower, ellipticity_bulge_upper, \
+			BulgeRotationScale_lower, BulgeRotationScale_upper, Max_vel_bulge_lower, Max_vel_bulge_upper, \
+			CentralBulgeDispersion_lower, CentralBulgeDispersion_upper, alpha_Bulge_lower, alpha_Bulge_upper, \
+			log_I_Disc_lower, log_I_Disc_upper, Re_Disc_lower, Re_Disc_upper, DiscRotationScale_lower, DiscRotationScale_upper, \
+			Max_vel_disc_lower, Max_vel_disc_upper, CentralDiscDispersion_lower, CentralDiscDispersion_upper, \
+			alpha_Disc_lower, alpha_Disc_upper, \
+			AzimuthVariationParameterBulge_lower, AzimuthVariationParameterBulge_upper, AzimuthVariationParameterDisc_lower, AzimuthVariationParameterDisc_upper, \
+			sluggsWeight_lower, sluggsWeight_upper, atlasWeight_lower, atlasWeight_upper]
+	else:
+		boundaries = [ellipticity_bulge_lower, ellipticity_bulge_upper, \
+			BulgeRotationScale_lower, BulgeRotationScale_upper, Max_vel_bulge_lower, Max_vel_bulge_upper, \
+			CentralBulgeDispersion_lower, CentralBulgeDispersion_upper, alpha_Bulge_lower, alpha_Bulge_upper, \
+			log_I_Disc_lower, log_I_Disc_upper, Re_Disc_lower, Re_Disc_upper, DiscRotationScale_lower, DiscRotationScale_upper, \
+			Max_vel_disc_lower, Max_vel_disc_upper, CentralDiscDispersion_lower, CentralDiscDispersion_upper, \
+			alpha_Disc_lower, alpha_Disc_upper, \
+			AzimuthVariationParameterBulge_lower, AzimuthVariationParameterBulge_upper, AzimuthVariationParameterDisc_lower, AzimuthVariationParameterDisc_upper]
 	
 	EffectiveRadius = Reff_Spitzer[GalName]
 	ObservedEllipticity = 1 - b_a[GalName]
 	n_bulge = SersicIndex_Bulge[GalName]
 	Re_Bulge = EffectiveRadius_Bulge[GalName]
 	mag_Bulge = MagnitudeRe_Bulge[GalName]
-	Spitzer_Radius, Spitzer_Mag, Spitzer_MagErr = SpitzerMagProfileFinder(GalName)
+	Spitzer_Radius, Spitzer_Mag, Spitzer_MagErr = SpitzerMagProfileFinder(GalName) # I haven't yet done a thorough check on the impact of using a Spitzer lumiosity
+																				   # profile, but using an optical magnitude for a previous photometric decomposition. 
+																				   # My assumption here is that the impact is negligible. 
 	
 	# Setup MCMC sampler
 	import emcee
-	sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob_RotationAndDispersion,
-	                  args=(boundaries, X, Y, Vel_Observed, VelErr_Observed, VelDisp_Observed, VelDispErr_Observed, \
-	                  	EffectiveRadius, ObservedEllipticity, n_bulge, Re_Bulge, mag_Bulge, Spitzer_Radius, Spitzer_Mag, Spitzer_MagErr),
-	                  threads=16) #Threads gives the number of processors to use
+	if TwoDatasets:
+		sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob_RotationAndDispersion_hyperparameters,
+		                  args=(boundaries, X, Y, Vel_Observed, VelErr_Observed, VelDisp_Observed, VelDispErr_Observed, \
+		                  	X_2, Y_2, Vel_Observed_2, VelErr_Observed_2, VelDisp_Observed_2, VelDispErr_Observed_2, \
+		                  	EffectiveRadius, ObservedEllipticity, n_bulge, Re_Bulge, mag_Bulge, Spitzer_Radius, Spitzer_Mag, Spitzer_MagErr),
+		                  threads=16) #Threads gives the number of processors to use
+	else:
+		sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob_RotationAndDispersion,
+		                  args=(boundaries, X, Y, Vel_Observed, VelErr_Observed, VelDisp_Observed, VelDispErr_Observed, \
+		                  	EffectiveRadius, ObservedEllipticity, n_bulge, Re_Bulge, mag_Bulge, Spitzer_Radius, Spitzer_Mag, Spitzer_MagErr),
+		                  threads=16) #Threads gives the number of processors to use
 	
 	############ implementing a burn-in period ###########
 	burnSteps = 1000
@@ -137,7 +198,10 @@ if ExistingPhotometry:
 		print 'time elapsed:', float(t)/3600, 'hours'
 	print '########################################'
 	print 'Mean acceptance fraction: ', (np.mean(sampler.acceptance_fraction))
-	OutputFilename = DropboxDirectory+'Dropbox/PhD_Analysis/Analysis/Angular Momentum/Mock_Kinematics/'+str(GalName)+'/'+str(GalName)+'_MCMCOutput.dat'
+	if TwoDatasets:
+		OutputFilename = DropboxDirectory+'Dropbox/PhD_Analysis/Analysis/Angular Momentum/Mock_Kinematics/'+str(GalName)+'/'+str(GalName)+'_MCMCOutput_TwoDatasets.dat'
+	else:
+		OutputFilename = DropboxDirectory+'Dropbox/PhD_Analysis/Analysis/Angular Momentum/Mock_Kinematics/'+str(GalName)+'/'+str(GalName)+'_MCMCOutput.dat'
 	print 'output filename: ', OutputFilename
 	
 	fileOut = open(OutputFilename, 'wb')

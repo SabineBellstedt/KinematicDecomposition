@@ -26,100 +26,201 @@ def parameterExtractor(inputDict, name):
 	print 'Parameter extraction successful for', name
 	return value, lower, upper
 
-GalName = 'NGC4459'
+GalName = 'NGC1023'
 print GalName
 
 OutputFileLocation = DropboxDirectory+'Dropbox/PhD_Analysis/Analysis/Angular Momentum/Mock_Kinematics/'+str(GalName)+'/'
 ObservedGalaxyInput_Path = os.path.abspath(DropboxDirectory+'Dropbox/PhD_Analysis/Analysis/Angular Momentum/Mock_Kinematics')+'/'
 
-OutputFilename = OutputFileLocation+str(GalName)+'_MCMCOutput.dat'
+TwoDatasets = FalseΩ
 
-# now looking at the output of the MCMC and analysing it. 
-# depending on how old the output file is, I may or may not have saved the acceptance fraction. 
-# try:
-# 	fileIn = open(OutputFilename, 'rb')
-# 	chain, flatchain, lnprobability, flatlnprobability, acceptanceFraction = pickle.load(fileIn) 
-# 	# I don't want to bother running this code if the acceptance fraction is zero. 
-# 	# if acceptanceFraction == 0.:
-# 	# 	print 'Acceptance Fraction is zero. Output is garbage!'
-# 	# 	sys.exit(0)
-# 	# else:
-# 	# 	print 'Acceptance Fraction:', acceptanceFraction
-# except:
-fileIn = open(OutputFilename, 'rb')
-chain, flatchain, lnprobability, flatlnprobability, = pickle.load(fileIn) 
-fileIn.close()
+if TwoDatasets:
+	OutputFilename = OutputFileLocation+str(GalName)+'_MCMCOutput_TwoDatasets.dat'
+	
+	# now looking at the output of the MCMC and analysing it. 
 
-params = [r"$\epsilon_b$", \
-		"BulgeRotScale", \
-		r"$v_b$", \
-		r"$\sigma_{c,b}$", \
-		r"$\alpha_b$", \
-		r"$\log(I_d)$", \
-		r"$R_{e,d}$", 
-		"DiscRotScale", \
-		r"$v_d$", \
-		r"$\sigma_{c,d}$", \
-		r"$\alpha_d$", \
-		r"$\theta_{\rm b}$", \
-		r"$\theta_{\rm d}$"]
+	fileIn = open(OutputFilename, 'rb')
+	chain, flatchain, lnprobability, flatlnprobability, = pickle.load(fileIn) 
+	fileIn.close()
+	
+	params = [r"$\epsilon_b$", \
+			"BulgeRotScale", \
+			r"$v_b$", \
+			r"$\sigma_{c,b}$", \
+			r"$\alpha_b$", \
+			r"$\log(I_d)$", \
+			r"$R_{e,d}$", 
+			"DiscRotScale", \
+			r"$v_d$", \
+			r"$\sigma_{c,d}$", \
+			r"$\alpha_d$", \
+			r"$\theta_{\rm b}$", \
+			r"$\theta_{\rm d}$", \
+			r"$\omega_{\rm SLUGGS}$", \
+			r"$\omega_{\rm ATLAS}$"]
+	
+	triangleFilename = OutputFileLocation+str(GalName)+'_MCMCOutput_triangle_TwoDatasets.pdf'
+	
+	c = ChainConsumer().add_chain(flatchain, parameters=params)
+	c.configure(statistics='max_shortest', summary=True)
+	fig = c.plotter.plot(figsize = 'PAGE', filename = triangleFilename)
+	
+	
+	
+	
+	
+	ellipticity_bulge, ellipticity_bulge_lower, ellipticity_bulge_upper = parameterExtractor(c.analysis.get_summary(), '$\epsilon_b$')
+	BulgeRotationScale, BulgeRotationScale_lower, BulgeRotationScale_upper = parameterExtractor(c.analysis.get_summary(), 'BulgeRotScale')
+	Max_vel_bulge, Max_vel_bulge_lower, Max_vel_bulge_upper = parameterExtractor(c.analysis.get_summary(), '$v_b$')
+	CentralBulgeDispersion, CentralBulgeDispersion_lower, CentralBulgeDispersion_upper = parameterExtractor(c.analysis.get_summary(), r'$\sigma_{c,b}$')
+	alpha_Bulge, alpha_Bulge_lower, alpha_Bulge_upper = parameterExtractor(c.analysis.get_summary(), r'$\alpha_b$')
+	
+	log_I_Disc, log_I_Disc_lower, log_I_Disc_upper = parameterExtractor(c.analysis.get_summary(), r'$\log(I_d)$')
+	Re_Disc, Re_Disc_lower, Re_Disc_upper = parameterExtractor(c.analysis.get_summary(), '$R_{e,d}$')
+	DiscRotationScale, DiscRotationScale_lower, DiscRotationScale_upper = parameterExtractor(c.analysis.get_summary(), 'DiscRotScale')
+	Max_vel_disc, Max_vel_disc_lower, Max_vel_disc_upper = parameterExtractor(c.analysis.get_summary(), '$v_d$')
+	CentralDiscDispersion, CentralDiscDispersion_lower, CentralDiscDispersion_upper = parameterExtractor(c.analysis.get_summary(), r'$\sigma_{c,d}$')
+	alpha_Disc, alpha_Disc_lower, alpha_Disc_upper = parameterExtractor(c.analysis.get_summary(), r'$\alpha_d$')
+	
+	AzimuthVariationParameterBulge, AzimuthVariationParameterBulge_lower, AzimuthVariationParameterBulge_upper = \
+		parameterExtractor(c.analysis.get_summary(), r'$\theta_{\rm b}$')
+	AzimuthVariationParameterDisc, AzimuthVariationParameterDisc_lower, AzimuthVariationParameterDisc_upper = \
+		parameterExtractor(c.analysis.get_summary(), r'$\theta_{\rm d}$')
 
-triangleFilename = OutputFileLocation+str(GalName)+'_MCMCOutput_triangle.pdf'
+	sluggsWeight, sluggsWeight_lower, sluggsWeight_upper = parameterExtractor(c.analysis.get_summary(), r'$\omega_{\rm SLUGGS}$')
+	atlasWeight, atlasWeight_lower, atlasWeight_upper = parameterExtractor(c.analysis.get_summary(), r'$\omega_{\rm ATLAS}$')
+	
+	
+	PA = 90*np.pi/180
+	phi=(PA-np.pi/2.0) # accounting for the different 0 PA convention in astronomy to mathematics
+	
+	EffectiveRadius = Reff_Spitzer[GalName]
+	ObservedEllipticity = 1 - b_a[GalName]
+	n = SersicIndex_Bulge[GalName]
+	Re_Bulge = EffectiveRadius_Bulge[GalName]
+	mag_Bulge = MagnitudeRe_Bulge[GalName]
+	
+	# X, Y, Vel_Observed, VelErr_Observed, VelDisp_Observed, VelDispErr_Observed = krigingFileReadAll(ObservedGalaxyInput_Path, GalName)
+	#creating the 2D grid over which to generate the galaxy
+	gridSizex = int(4*EffectiveRadius/np.sqrt(1-ObservedEllipticity))
+	gridSizey = int(4*EffectiveRadius*np.sqrt(1-ObservedEllipticity))
+	X, Y = [], []
+	for xx in np.arange(-gridSizex, gridSizex, 2):
+		for yy in np.arange(-gridSizey, gridSizey, 2):
+			X.append(xx)
+			Y.append(yy)
+	X = np.array(X)
+	Y = np.array(Y)
+	
+	
+	# saving all the extracted parameters to an output file
+	Parameters = np.c_[ellipticity_bulge, ellipticity_bulge_lower, ellipticity_bulge_upper, \
+	# log_I_Bulge, log_I_Bulge_lower, log_I_Bulge_upper, \
+	BulgeRotationScale, BulgeRotationScale_lower, BulgeRotationScale_upper, Max_vel_bulge, Max_vel_bulge_lower, Max_vel_bulge_upper, \
+	CentralBulgeDispersion, CentralBulgeDispersion_lower, CentralBulgeDispersion_upper, alpha_Bulge, alpha_Bulge_lower, alpha_Bulge_upper, \
+	log_I_Disc, log_I_Disc_lower, log_I_Disc_upper, Re_Disc, Re_Disc_lower, Re_Disc_upper, DiscRotationScale, DiscRotationScale_lower, DiscRotationScale_upper, \
+	Max_vel_disc, Max_vel_disc_lower, Max_vel_disc_upper, CentralDiscDispersion, CentralDiscDispersion_lower, CentralDiscDispersion_upper, \
+	alpha_Disc, alpha_Disc_lower, alpha_Disc_upper, \
+	AzimuthVariationParameterBulge, AzimuthVariationParameterBulge_lower, AzimuthVariationParameterBulge_upper, \
+	AzimuthVariationParameterDisc, AzimuthVariationParameterDisc_lower, AzimuthVariationParameterDisc_upper, sluggsWeight, sluggsWeight_lower, sluggsWeight_upper, \
+	atlasWeight, atlasWeight_lower, atlasWeight_upper]
+	Parameter_Header = 'e_bulge (- +), \tBulgeRotationScale (- +), \tMax_vel_bulge (- +), \tCentralBulgeDispersion (- +), \talpha_Bulge (- +), \
+	\tlog_I_Disc (- +), \tRe_Disc (- +), \tDiscRotationScale (- +), \tMax_vel_disc (- +), \tCentralDiscDispersion (- +), \talpha_Disc (- +), \
+	\tAzimuthVariationParameterBulge (- +), \tAzimuthVariationParameterDisc (- +), \tHyperparameterSLUGGS (- +), \tHyperparameterATLAS3D (- +)'
+	
+	# print np.c_(Parameters)
+	np.savetxt(OutputFileLocation+GalName+'_Parameters_TwoDatasets.txt', Parameters, header = Parameter_Header)
+else:
 
-c = ChainConsumer().add_chain(flatchain, parameters=params)
-c.configure(statistics='max_shortest', summary=True)
-fig = c.plotter.plot(figsize = 'PAGE', filename = triangleFilename)
+	OutputFilename = OutputFileLocation+str(GalName)+'_MCMCOutput.dat'
+	
+	# now looking at the output of the MCMC and analysing it. 
 
-
-
-
-
-ellipticity_bulge, ellipticity_bulge_lower, ellipticity_bulge_upper = parameterExtractor(c.analysis.get_summary(), '$\epsilon_b$')
-BulgeRotationScale, BulgeRotationScale_lower, BulgeRotationScale_upper = parameterExtractor(c.analysis.get_summary(), 'BulgeRotScale')
-Max_vel_bulge, Max_vel_bulge_lower, Max_vel_bulge_upper = parameterExtractor(c.analysis.get_summary(), '$v_b$')
-CentralBulgeDispersion, CentralBulgeDispersion_lower, CentralBulgeDispersion_upper = parameterExtractor(c.analysis.get_summary(), r'$\sigma_{c,b}$')
-alpha_Bulge, alpha_Bulge_lower, alpha_Bulge_upper = parameterExtractor(c.analysis.get_summary(), r'$\alpha_b$')
-
-log_I_Disc, log_I_Disc_lower, log_I_Disc_upper = parameterExtractor(c.analysis.get_summary(), r'$\log(I_d)$')
-Re_Disc, Re_Disc_lower, Re_Disc_upper = parameterExtractor(c.analysis.get_summary(), '$R_{e,d}$')
-DiscRotationScale, DiscRotationScale_lower, DiscRotationScale_upper = parameterExtractor(c.analysis.get_summary(), 'DiscRotScale')
-Max_vel_disc, Max_vel_disc_lower, Max_vel_disc_upper = parameterExtractor(c.analysis.get_summary(), '$v_d$')
-CentralDiscDispersion, CentralDiscDispersion_lower, CentralDiscDispersion_upper = parameterExtractor(c.analysis.get_summary(), r'$\sigma_{c,d}$')
-alpha_Disc, alpha_Disc_lower, alpha_Disc_upper = parameterExtractor(c.analysis.get_summary(), r'$\alpha_d$')
-
-AzimuthVariationParameterBulge, AzimuthVariationParameterBulge_lower, AzimuthVariationParameterBulge_upper = \
-	parameterExtractor(c.analysis.get_summary(), r'$\theta_{\rm b}$')
-AzimuthVariationParameterDisc, AzimuthVariationParameterDisc_lower, AzimuthVariationParameterDisc_upper = \
-	parameterExtractor(c.analysis.get_summary(), r'$\theta_{\rm d}$')
-
-
-X, Y, Vel_Observed, VelErr_Observed, VelDisp_Observed, VelDispErr_Observed = krigingFileReadAll(ObservedGalaxyInput_Path, GalName)
-
-PA = 90*np.pi/180
-phi=(PA-np.pi/2.0) # accounting for the different 0 PA convention in astronomy to mathematics
-
-EffectiveRadius = Reff_Spitzer[GalName]
-ObservedEllipticity = 1 - b_a[GalName]
-n = SersicIndex_Bulge[GalName]
-Re_Bulge = EffectiveRadius_Bulge[GalName]
-mag_Bulge = MagnitudeRe_Bulge[GalName]
-
-# saving all the extracted parameters to an output file
-Parameters = np.c_[ellipticity_bulge, ellipticity_bulge_lower, ellipticity_bulge_upper, \
-# log_I_Bulge, log_I_Bulge_lower, log_I_Bulge_upper, \
-BulgeRotationScale, BulgeRotationScale_lower, BulgeRotationScale_upper, Max_vel_bulge, Max_vel_bulge_lower, Max_vel_bulge_upper, \
-CentralBulgeDispersion, CentralBulgeDispersion_lower, CentralBulgeDispersion_upper, alpha_Bulge, alpha_Bulge_lower, alpha_Bulge_upper, \
-log_I_Disc, log_I_Disc_lower, log_I_Disc_upper, Re_Disc, Re_Disc_lower, Re_Disc_upper, DiscRotationScale, DiscRotationScale_lower, DiscRotationScale_upper, \
-Max_vel_disc, Max_vel_disc_lower, Max_vel_disc_upper, CentralDiscDispersion, CentralDiscDispersion_lower, CentralDiscDispersion_upper, \
-alpha_Disc, alpha_Disc_lower, alpha_Disc_upper, \
-AzimuthVariationParameterBulge, AzimuthVariationParameterBulge_lower, AzimuthVariationParameterBulge_upper, \
-AzimuthVariationParameterDisc, AzimuthVariationParameterDisc_lower, AzimuthVariationParameterDisc_upper]
-Parameter_Header = 'e_bulge (- +), \tBulgeRotationScale (- +), \tMax_vel_bulge (- +), \tCentralBulgeDispersion (- +), \talpha_Bulge (- +), \
-\tlog_I_Disc (- +), \tRe_Disc (- +), \tDiscRotationScale (- +), \tMax_vel_disc (- +), \tCentralDiscDispersion (- +), \talpha_Disc (- +), \
-\tAzimuthVariationParameterBulge (- +), \tAzimuthVariationParameterDisc (- +)'
-
-# print np.c_(Parameters)
-np.savetxt(OutputFileLocation+GalName+'_Parameters.txt', Parameters, header = Parameter_Header)
+	fileIn = open(OutputFilename, 'rb')
+	chain, flatchain, lnprobability, flatlnprobability, = pickle.load(fileIn) 
+	fileIn.close()
+	
+	params = [r"$\epsilon_b$", \
+			"BulgeRotScale", \
+			r"$v_b$", \
+			r"$\sigma_{c,b}$", \
+			r"$\alpha_b$", \
+			r"$\log(I_d)$", \
+			r"$R_{e,d}$", 
+			"DiscRotScale", \
+			r"$v_d$", \
+			r"$\sigma_{c,d}$", \
+			r"$\alpha_d$", \
+			r"$\theta_{\rm b}$", \
+			r"$\theta_{\rm d}$"]
+	
+	triangleFilename = OutputFileLocation+str(GalName)+'_MCMCOutput_triangle.pdf'
+	
+	c = ChainConsumer().add_chain(flatchain, parameters=params)
+	c.configure(statistics='max_shortest', summary=True)
+	fig = c.plotter.plot(figsize = 'PAGE', filename = triangleFilename)
+	
+	
+	
+	
+	
+	ellipticity_bulge, ellipticity_bulge_lower, ellipticity_bulge_upper = parameterExtractor(c.analysis.get_summary(), '$\epsilon_b$')
+	BulgeRotationScale, BulgeRotationScale_lower, BulgeRotationScale_upper = parameterExtractor(c.analysis.get_summary(), 'BulgeRotScale')
+	Max_vel_bulge, Max_vel_bulge_lower, Max_vel_bulge_upper = parameterExtractor(c.analysis.get_summary(), '$v_b$')
+	CentralBulgeDispersion, CentralBulgeDispersion_lower, CentralBulgeDispersion_upper = parameterExtractor(c.analysis.get_summary(), r'$\sigma_{c,b}$')
+	alpha_Bulge, alpha_Bulge_lower, alpha_Bulge_upper = parameterExtractor(c.analysis.get_summary(), r'$\alpha_b$')
+	
+	log_I_Disc, log_I_Disc_lower, log_I_Disc_upper = parameterExtractor(c.analysis.get_summary(), r'$\log(I_d)$')
+	Re_Disc, Re_Disc_lower, Re_Disc_upper = parameterExtractor(c.analysis.get_summary(), '$R_{e,d}$')
+	DiscRotationScale, DiscRotationScale_lower, DiscRotationScale_upper = parameterExtractor(c.analysis.get_summary(), 'DiscRotScale')
+	Max_vel_disc, Max_vel_disc_lower, Max_vel_disc_upper = parameterExtractor(c.analysis.get_summary(), '$v_d$')
+	CentralDiscDispersion, CentralDiscDispersion_lower, CentralDiscDispersion_upper = parameterExtractor(c.analysis.get_summary(), r'$\sigma_{c,d}$')
+	alpha_Disc, alpha_Disc_lower, alpha_Disc_upper = parameterExtractor(c.analysis.get_summary(), r'$\alpha_d$')
+	
+	AzimuthVariationParameterBulge, AzimuthVariationParameterBulge_lower, AzimuthVariationParameterBulge_upper = \
+		parameterExtractor(c.analysis.get_summary(), r'$\theta_{\rm b}$')
+	AzimuthVariationParameterDisc, AzimuthVariationParameterDisc_lower, AzimuthVariationParameterDisc_upper = \
+		parameterExtractor(c.analysis.get_summary(), r'$\theta_{\rm d}$')
+	
+	
+	PA = 90*np.pi/180
+	phi=(PA-np.pi/2.0) # accounting for the different 0 PA convention in astronomy to mathematics
+	
+	EffectiveRadius = Reff_Spitzer[GalName]
+	ObservedEllipticity = 1 - b_a[GalName]
+	n = SersicIndex_Bulge[GalName]
+	Re_Bulge = EffectiveRadius_Bulge[GalName]
+	mag_Bulge = MagnitudeRe_Bulge[GalName]
+	
+	# X, Y, Vel_Observed, VelErr_Observed, VelDisp_Observed, VelDispErr_Observed = krigingFileReadAll(ObservedGalaxyInput_Path, GalName)
+	#creating the 2D grid over which to generate the galaxy
+	gridSizex = int(4*EffectiveRadius/np.sqrt(1-ObservedEllipticity))
+	gridSizey = int(4*EffectiveRadius*np.sqrt(1-ObservedEllipticity))
+	X, Y = [], []
+	for xx in np.arange(-gridSizex, gridSizex, 2):
+		for yy in np.arange(-gridSizey, gridSizey, 2):
+			X.append(xx)
+			Y.append(yy)
+	X = np.array(X)
+	Y = np.array(Y)
+	
+	
+	# saving all the extracted parameters to an output file
+	Parameters = np.c_[ellipticity_bulge, ellipticity_bulge_lower, ellipticity_bulge_upper, \
+	# log_I_Bulge, log_I_Bulge_lower, log_I_Bulge_upper, \
+	BulgeRotationScale, BulgeRotationScale_lower, BulgeRotationScale_upper, Max_vel_bulge, Max_vel_bulge_lower, Max_vel_bulge_upper, \
+	CentralBulgeDispersion, CentralBulgeDispersion_lower, CentralBulgeDispersion_upper, alpha_Bulge, alpha_Bulge_lower, alpha_Bulge_upper, \
+	log_I_Disc, log_I_Disc_lower, log_I_Disc_upper, Re_Disc, Re_Disc_lower, Re_Disc_upper, DiscRotationScale, DiscRotationScale_lower, DiscRotationScale_upper, \
+	Max_vel_disc, Max_vel_disc_lower, Max_vel_disc_upper, CentralDiscDispersion, CentralDiscDispersion_lower, CentralDiscDispersion_upper, \
+	alpha_Disc, alpha_Disc_lower, alpha_Disc_upper, \
+	AzimuthVariationParameterBulge, AzimuthVariationParameterBulge_lower, AzimuthVariationParameterBulge_upper, \
+	AzimuthVariationParameterDisc, AzimuthVariationParameterDisc_lower, AzimuthVariationParameterDisc_upper]
+	Parameter_Header = 'e_bulge (- +), \tBulgeRotationScale (- +), \tMax_vel_bulge (- +), \tCentralBulgeDispersion (- +), \talpha_Bulge (- +), \
+	\tlog_I_Disc (- +), \tRe_Disc (- +), \tDiscRotationScale (- +), \tMax_vel_disc (- +), \tCentralDiscDispersion (- +), \talpha_Disc (- +), \
+	\tAzimuthVariationParameterBulge (- +), \tAzimuthVariationParameterDisc (- +)'
+	
+	# print np.c_(Parameters)
+	np.savetxt(OutputFileLocation+GalName+'_Parameters.txt', Parameters, header = Parameter_Header)
 
 
 # recreating the kinematics in order to make plots. 
@@ -183,18 +284,18 @@ TotalDispersion = BulgeDispersion * BulgeFraction + DiscDispersion * DiscFractio
 #calculating the central intensity of light, as a normalisation factor. 
 PeakIntensity = BulgeIntensity[np.where((X == 0) & (Y == 0))] + DiscIntensity[np.where((X == 0) & (Y == 0))]
 
-sizeMapx, sizeMapy = 80, 80
-X = np.array(X).reshape(sizeMapx,sizeMapy)
-Y = np.array(Y).reshape(sizeMapx,sizeMapy)
-BulgeIntensity = np.array(BulgeIntensity).reshape(sizeMapx,sizeMapy)
-DiscIntensity = np.array(DiscIntensity).reshape(sizeMapx,sizeMapy)
-DiscRotation = np.array(DiscRotation).reshape(sizeMapx,sizeMapy)
-BulgeRotation = np.array(BulgeRotation).reshape(sizeMapx,sizeMapy)
-TotalRotation = np.array(TotalRotation).reshape(sizeMapx,sizeMapy)
-DiscDispersion = np.array(DiscDispersion).reshape(sizeMapx,sizeMapy)
-BulgeDispersion = np.array(BulgeDispersion).reshape(sizeMapx,sizeMapy)
-TotalDispersion = np.array(TotalDispersion).reshape(sizeMapx,sizeMapy)
-Angles = np.array(Angles).reshape(sizeMapx,sizeMapy)
+# sizeMapx, sizeMapy = 80, 80
+X = np.array(X).reshape(gridSizex,gridSizey)
+Y = np.array(Y).reshape(gridSizex,gridSizey)
+BulgeIntensity = np.array(BulgeIntensity).reshape(gridSizex,gridSizey)
+DiscIntensity = np.array(DiscIntensity).reshape(gridSizex,gridSizey)
+DiscRotation = np.array(DiscRotation).reshape(gridSizex,gridSizey)
+BulgeRotation = np.array(BulgeRotation).reshape(gridSizex,gridSizey)
+TotalRotation = np.array(TotalRotation).reshape(gridSizex,gridSizey)
+DiscDispersion = np.array(DiscDispersion).reshape(gridSizex,gridSizey)
+BulgeDispersion = np.array(BulgeDispersion).reshape(gridSizex,gridSizey)
+TotalDispersion = np.array(TotalDispersion).reshape(gridSizex,gridSizey)
+Angles = np.array(Angles).reshape(gridSizex,gridSizey)
 
 
 TotalIntensity = BulgeIntensity + DiscIntensity
@@ -307,24 +408,31 @@ print '------------------------------------'
 
 Linewidth_parameter = 0.8
 
-X_Observed, Y_Observed, Vel_Observed, VelErr_Observed, VelDisp_Observed, VelDispErr_Observed = krigingFileReadAll(ObservedGalaxyInput_Path, GalName)
+# X_Observed, Y_Observed, Vel_Observed, VelErr_Observed, VelDisp_Observed, VelDispErr_Observed = krigingFileReadAll(ObservedGalaxyInput_Path, GalName)
 
-Vel_Observed = np.array(Vel_Observed).reshape(sizeMapx,sizeMapy)
-VelDisp_Observed = np.array(VelDisp_Observed).reshape(sizeMapx,sizeMapy)
-VelErr_Observed = np.array(VelErr_Observed).reshape(sizeMapx,sizeMapy)
-VelDispErr_Observed = np.array(VelDispErr_Observed).reshape(sizeMapx,sizeMapy)
+# Vel_Observed = np.array(Vel_Observed).reshape(sizeMapx,sizeMapy)
+# VelDisp_Observed = np.array(VelDisp_Observed).reshape(sizeMapx,sizeMapy)
+# VelErr_Observed = np.array(VelErr_Observed).reshape(sizeMapx,sizeMapy)
+# VelDispErr_Observed = np.array(VelDispErr_Observed).reshape(sizeMapx,sizeMapy)
+if TwoDatasets:
+	IntensityPlottingFunction(X, Y, BulgeIntensity, DiscIntensity, TotalIntensity, gridSizex, gridSizey, phi, Ellipticity, \
+		EffectiveRadius, filename = OutputFileLocation+str(GalName)+'_MCMCOutput_Photometry_TwoDatasets.pdf')
+	RotationPlottingFunction(X, Y, BulgeRotationField, DiscRotationField, TotalRotation, MinimumRotation, MaximumRotation, \
+		EffectiveRadius, 1-Ellipticity, filename = OutputFileLocation+str(GalName)+'_MCMCOutput_Velocity_TwoDatasets.pdf')
+	DispersionPlottingFunction(X, Y, BulgeDispersion, DiscDispersion, TotalDispersion, MinimumDispersion, MaximumDispersion, \
+		EffectiveRadius, 1-Ellipticity, filename = OutputFileLocation+str(GalName)+'_MCMCOutput_Dispersion_TwoDatasets.pdf')
+else:
+	IntensityPlottingFunction(X, Y, BulgeIntensity, DiscIntensity, TotalIntensity, gridSizex, gridSizey, phi, Ellipticity, \
+		EffectiveRadius, filename = OutputFileLocation+str(GalName)+'_MCMCOutput_Photometry.pdf')
+	RotationPlottingFunction(X, Y, BulgeRotationField, DiscRotationField, TotalRotation, MinimumRotation, MaximumRotation, \
+		EffectiveRadius, 1-Ellipticity, filename = OutputFileLocation+str(GalName)+'_MCMCOutput_Velocity.pdf')
+	DispersionPlottingFunction(X, Y, BulgeDispersion, DiscDispersion, TotalDispersion, MinimumDispersion, MaximumDispersion, \
+		EffectiveRadius, 1-Ellipticity, filename = OutputFileLocation+str(GalName)+'_MCMCOutput_Dispersion.pdf')
 
-IntensityPlottingFunction(X, Y, BulgeIntensity, DiscIntensity, TotalIntensity, sizeMapx, sizeMapy, phi, Ellipticity, \
-	EffectiveRadius, filename = OutputFileLocation+str(GalName)+'_MCMCOutput_Photometry.pdf')
-RotationPlottingFunction(X, Y, BulgeRotationField, DiscRotationField, TotalRotation, Vel_Observed, MinimumRotation, MaximumRotation, \
-	EffectiveRadius, 1-Ellipticity, filename = OutputFileLocation+str(GalName)+'_MCMCOutput_Velocity.pdf')
-DispersionPlottingFunction(X, Y, BulgeDispersion, DiscDispersion, TotalDispersion, VelDisp_Observed, MinimumDispersion, MaximumDispersion, \
-	EffectiveRadius, 1-Ellipticity, filename = OutputFileLocation+str(GalName)+'_MCMCOutput_Dispersion.pdf')
-
-RelativeResidualPlottingFunction(X, Y, TotalRotation, Vel_Observed, VelErr_Observed, \
-	EffectiveRadius, 1-Ellipticity, filename = OutputFileLocation+str(GalName)+'_MCMCOutput_Velocity.pdf')
-RelativeResidualPlottingFunction(X, Y, TotalDispersion, VelDisp_Observed, VelDispErr_Observed, \
-	EffectiveRadius, 1-Ellipticity, filename = OutputFileLocation+str(GalName)+'_MCMCOutput_Dispersion.pdf')
+# RelativeResidualPlottingFunction(X, Y, TotalRotation, Vel_Observed, VelErr_Observed, \
+# 	EffectiveRadius, 1-Ellipticity, filename = OutputFileLocation+str(GalName)+'_MCMCOutput_Velocity.pdf')
+# RelativeResidualPlottingFunction(X, Y, TotalDispersion, VelDisp_Observed, VelDispErr_Observed, \
+# 	EffectiveRadius, 1-Ellipticity, filename = OutputFileLocation+str(GalName)+'_MCMCOutput_Dispersion.pdf')
 
 
 fig=plt.figure(figsize=(5, 5))
