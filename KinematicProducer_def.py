@@ -117,7 +117,8 @@ def MockKinematicsModel(X, Y, Vel_Observed, VelErr_Observed, VelDisp_Observed, V
 	# PeakIntensity = BulgeIntensity[np.where((X == 0) & (Y == 0))] + DiscIntensity[np.where((X == 0) & (Y == 0))]
 
 	# calculating the chi-squared of the match of the rotation field and dispersion field to the observed galaxy
-	ObservedSel = np.where(np.isfinite(Vel_Observed))
+	ObservedSel = np.where(np.isfinite(Vel_Observed) & np.isfinite(TotalDispersion)) # avoid the values for which the model gives infinite 
+																					 # velocity dispersion values at the centre of the bulge. 
 
 	# needing to combine the velocity and velocity dispersion fits as though they were a single dataset
 
@@ -450,7 +451,7 @@ def lnlike_RotationAndDispersion_hyperparameters(theta, *args):
 			realChi2_atlas = np.sum(np.log(2*np.pi*ObservedUncertainties_atlas**2/atlasWeight) + (atlasWeight*(ObservedData_atlas - ModelData_atlas)/ObservedUncertainties_atlas)**2.)
 			
 			Chi2Total = realChi2_sluggs + realChi2_atlas + realChi2_lum # now each of the datasets is appropriately weighted, and it is the likelihoods themselves that are being multiplied
-			# print 'accepted'
+			# print realChi2_atlas, np.mean(ModelData_atlas)
 	except:
 		# print 'rejected'
 		Chi2Total = np.inf

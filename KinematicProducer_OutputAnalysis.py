@@ -32,7 +32,7 @@ print GalName
 OutputFileLocation = DropboxDirectory+'Dropbox/PhD_Analysis/Analysis/Angular Momentum/Mock_Kinematics/'+str(GalName)+'/'
 ObservedGalaxyInput_Path = os.path.abspath(DropboxDirectory+'Dropbox/PhD_Analysis/Analysis/Angular Momentum/Mock_Kinematics')+'/'
 
-TwoDatasets = FalseΩ
+TwoDatasets = True
 
 if TwoDatasets:
 	OutputFilename = OutputFileLocation+str(GalName)+'_MCMCOutput_TwoDatasets.dat'
@@ -62,12 +62,8 @@ if TwoDatasets:
 	triangleFilename = OutputFileLocation+str(GalName)+'_MCMCOutput_triangle_TwoDatasets.pdf'
 	
 	c = ChainConsumer().add_chain(flatchain, parameters=params)
-	c.configure(statistics='max_shortest', summary=True)
+	c.configure(statistics='max', summary=True)
 	fig = c.plotter.plot(figsize = 'PAGE', filename = triangleFilename)
-	
-	
-	
-	
 	
 	ellipticity_bulge, ellipticity_bulge_lower, ellipticity_bulge_upper = parameterExtractor(c.analysis.get_summary(), '$\epsilon_b$')
 	BulgeRotationScale, BulgeRotationScale_lower, BulgeRotationScale_upper = parameterExtractor(c.analysis.get_summary(), 'BulgeRotScale')
@@ -89,28 +85,6 @@ if TwoDatasets:
 
 	sluggsWeight, sluggsWeight_lower, sluggsWeight_upper = parameterExtractor(c.analysis.get_summary(), r'$\omega_{\rm SLUGGS}$')
 	atlasWeight, atlasWeight_lower, atlasWeight_upper = parameterExtractor(c.analysis.get_summary(), r'$\omega_{\rm ATLAS}$')
-	
-	
-	PA = 90*np.pi/180
-	phi=(PA-np.pi/2.0) # accounting for the different 0 PA convention in astronomy to mathematics
-	
-	EffectiveRadius = Reff_Spitzer[GalName]
-	ObservedEllipticity = 1 - b_a[GalName]
-	n = SersicIndex_Bulge[GalName]
-	Re_Bulge = EffectiveRadius_Bulge[GalName]
-	mag_Bulge = MagnitudeRe_Bulge[GalName]
-	
-	# X, Y, Vel_Observed, VelErr_Observed, VelDisp_Observed, VelDispErr_Observed = krigingFileReadAll(ObservedGalaxyInput_Path, GalName)
-	#creating the 2D grid over which to generate the galaxy
-	gridSizex = int(4*EffectiveRadius/np.sqrt(1-ObservedEllipticity))
-	gridSizey = int(4*EffectiveRadius*np.sqrt(1-ObservedEllipticity))
-	X, Y = [], []
-	for xx in np.arange(-gridSizex, gridSizex, 2):
-		for yy in np.arange(-gridSizey, gridSizey, 2):
-			X.append(xx)
-			Y.append(yy)
-	X = np.array(X)
-	Y = np.array(Y)
 	
 	
 	# saving all the extracted parameters to an output file
@@ -157,12 +131,8 @@ else:
 	triangleFilename = OutputFileLocation+str(GalName)+'_MCMCOutput_triangle.pdf'
 	
 	c = ChainConsumer().add_chain(flatchain, parameters=params)
-	c.configure(statistics='max_shortest', summary=True)
+	c.configure(statistics='max', summary=True)
 	fig = c.plotter.plot(figsize = 'PAGE', filename = triangleFilename)
-	
-	
-	
-	
 	
 	ellipticity_bulge, ellipticity_bulge_lower, ellipticity_bulge_upper = parameterExtractor(c.analysis.get_summary(), '$\epsilon_b$')
 	BulgeRotationScale, BulgeRotationScale_lower, BulgeRotationScale_upper = parameterExtractor(c.analysis.get_summary(), 'BulgeRotScale')
@@ -181,29 +151,7 @@ else:
 		parameterExtractor(c.analysis.get_summary(), r'$\theta_{\rm b}$')
 	AzimuthVariationParameterDisc, AzimuthVariationParameterDisc_lower, AzimuthVariationParameterDisc_upper = \
 		parameterExtractor(c.analysis.get_summary(), r'$\theta_{\rm d}$')
-	
-	
-	PA = 90*np.pi/180
-	phi=(PA-np.pi/2.0) # accounting for the different 0 PA convention in astronomy to mathematics
-	
-	EffectiveRadius = Reff_Spitzer[GalName]
-	ObservedEllipticity = 1 - b_a[GalName]
-	n = SersicIndex_Bulge[GalName]
-	Re_Bulge = EffectiveRadius_Bulge[GalName]
-	mag_Bulge = MagnitudeRe_Bulge[GalName]
-	
-	# X, Y, Vel_Observed, VelErr_Observed, VelDisp_Observed, VelDispErr_Observed = krigingFileReadAll(ObservedGalaxyInput_Path, GalName)
-	#creating the 2D grid over which to generate the galaxy
-	gridSizex = int(4*EffectiveRadius/np.sqrt(1-ObservedEllipticity))
-	gridSizey = int(4*EffectiveRadius*np.sqrt(1-ObservedEllipticity))
-	X, Y = [], []
-	for xx in np.arange(-gridSizex, gridSizex, 2):
-		for yy in np.arange(-gridSizey, gridSizey, 2):
-			X.append(xx)
-			Y.append(yy)
-	X = np.array(X)
-	Y = np.array(Y)
-	
+
 	
 	# saving all the extracted parameters to an output file
 	Parameters = np.c_[ellipticity_bulge, ellipticity_bulge_lower, ellipticity_bulge_upper, \
@@ -221,7 +169,28 @@ else:
 	
 	# print np.c_(Parameters)
 	np.savetxt(OutputFileLocation+GalName+'_Parameters.txt', Parameters, header = Parameter_Header)
+	
+	
+PA = 90*np.pi/180
+phi=(PA-np.pi/2.0) # accounting for the different 0 PA convention in astronomy to mathematics
 
+EffectiveRadius = Reff_Spitzer[GalName]
+ObservedEllipticity = 1 - b_a[GalName]
+n = SersicIndex_Bulge[GalName]
+Re_Bulge = EffectiveRadius_Bulge[GalName]
+mag_Bulge = MagnitudeRe_Bulge[GalName]
+
+# X, Y, Vel_Observed, VelErr_Observed, VelDisp_Observed, VelDispErr_Observed = krigingFileReadAll(ObservedGalaxyInput_Path, GalName)
+#creating the 2D grid over which to generate the galaxy
+gridSizex = int(4*EffectiveRadius/np.sqrt(1-ObservedEllipticity))
+gridSizey = int(4*EffectiveRadius*np.sqrt(1-ObservedEllipticity))
+X, Y = [], []
+for xx in np.arange(-gridSizex, gridSizex, 2):
+	for yy in np.arange(-gridSizey, gridSizey, 2):
+		X.append(xx)
+		Y.append(yy)
+X = np.array(X)
+Y = np.array(Y)
 
 # recreating the kinematics in order to make plots. 
 log_I_Bulge = -mag_Bulge / 2.5
@@ -480,6 +449,9 @@ handles, labels=ax1.get_legend_handles_labels()
 ax1.legend(handles, labels, loc=4, fontsize=8, scatterpoints = 1)
 
 plt.subplots_adjust(hspace = 0., wspace = 0.2)
-OutputFilename = OutputFileLocation+str(GalName)+'_IntensityProfile.pdf'
+if TwoDatasets:
+	OutputFilename = OutputFileLocation+str(GalName)+'_IntensityProfile_TwoDatasets.pdf'
+else:
+	OutputFilename = OutputFileLocation+str(GalName)+'_IntensityProfile.pdf'
 plt.savefig(OutputFilename)
 plt.close()

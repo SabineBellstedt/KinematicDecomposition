@@ -31,7 +31,7 @@ from Sabine_Define import *
 from KinematicProducer_def import *
 
 
-GalName = 'NGC1023'
+GalName = 'NGC3377'
 KrigingInput = False
 ExistingPhotometry = True
 TwoDatasets = True
