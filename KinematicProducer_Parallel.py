@@ -8,7 +8,9 @@ There are a number of things that will go into the production of mock kinematics
 	at any given radius. 
 2) Exponential light profile for the disc
 3) Sersic light profile for the bulge. 
-
+4) Bulge velocity dispersion (can make a free parameter)
+5) Expression for the rotational velocity profile for a disc
+6) Maximum rotational velocity (can make a free parameter)
 
 At the end of the mock kinematics, a mock kriging map will be produced, which can be compared with the kriging map 
 produced from observed data. 
@@ -17,36 +19,31 @@ produced from observed data.
 # retrieve dictionaries
 import os, sys, random, time, pickle
 import numpy as np
-# from matplotlib.patches import Ellipse
-# from matplotlib.path import Path
-# from chainconsumer import ChainConsumer
+from matplotlib.patches import Ellipse
+from matplotlib.path import Path
 
-DropboxDirectory = os.getcwd().split('Dropbox')[0]
-lib_path = os.path.abspath(DropboxDirectory+'Dropbox/PhD_Analysis/Library') 
+lib_path = os.path.abspath('/nfs/cluster/gals/sbellstedt/Library') 
 sys.path.append(lib_path)
 from galaxyParametersDictionary_v9 import *
 from Sabine_Define import *
 from KinematicProducer_def import *
 
 
-GalName = 'NGC4697'
-KrigingInput = True # determines whether the SLUGGS dataset is given to MCMC in terms of the raw datapoints, or the kriging pixels. 
-ExistingPhotometry = False
-TwoDatasets = True
-Magneticum = False
+GalName = str(sys.argv[1])
+KrigingInput = str(sys.argv[2]) # determines whether the SLUGGS dataset is given to MCMC in terms of the raw datapoints, or the kriging pixels. 
+ExistingPhotometry = str(sys.argv[3])
+TwoDatasets = str(sys.argv[4])
+Magneticum = str(sys.argv[5])
 
-if not os.path.exists(str(GalName)): 
-	os.mkdir(str(GalName))
-
-pathName = DropboxDirectory+'Dropbox/PhD_Analysis/Analysis/Angular Momentum/Mock_Kinematics/'
-MagneticumPathName = DropboxDirectory+'Dropbox/PhD_Analysis/data/MagneticumGalaxies/'
-KinematicProducer_mainCall(pathName, MagneticumPathName, GalName, ExistingPhotometry = True, TwoDatasets = True, KrigingInput = True, Magneticum = False)
-# instead of sampling a given range, I now sample the same pixels as given for an observed galaxy. 
-# ObservedGalaxyInput_Path = os.path.abspath(DropboxDirectory+'Dropbox/PhD_Analysis/Analysis/Angular Momentum/Mock_Kinematics')+'/'
+pathName = '/nfs/cluster/gals/sbellstedt/Analysis/Mock_Kinematics/'
+MagneticumPathName = '/nfs/cluster/gals/sbellstedt/Analysis/Mock_Kinematics/'
+KinematicProducer_mainCall(pathName, MagneticumPathName, GalName, ExistingPhotometry, TwoDatasets, KrigingInput, Magneticum)
+# # instead of sampling a given range, I now sample the same pixels as given for an observed galaxy. 
+# ObservedGalaxyInput_Path = os.path.abspath('/nfs/cluster/gals/sbellstedt/Analysis/Mock_Kinematics')+'/'
 # if KrigingInput:
 # 	X, Y, Vel_Observed, VelErr_Observed, VelDisp_Observed, VelDispErr_Observed = krigingFileReadAll(ObservedGalaxyInput_Path, GalName)
 # elif Magneticum:
-# 	pathMajor = DropboxDirectory+'Dropbox/PhD_Analysis/Data/MagneticumGalaxies/'+GalName+'_vor.dat'
+# 	pathMajor = '/nfs/cluster/gals/sbellstedt/Analysis/Mock_Kinematics/MagneticumGalaxies/'+GalName+'_vor.dat'
 # 	X, Y, Vel_Observed, VelErr_Observed = np.loadtxt(pathMajor, skiprows = 1, unpack = True, usecols = [0, 1, 2, 3])
 # 	VelDisp_Observed, VelDispErr_Observed = 2 * np.ones(len(X)), 2 * np.ones(len(X)) # There are no uncertainties associated with the maps, at least not currently. 
 # 																					 # Hence currently I am using a low "dummy" value. 
@@ -202,9 +199,9 @@ KinematicProducer_mainCall(pathName, MagneticumPathName, GalName, ExistingPhotom
 # 	print '########################################'
 # 	print 'Mean acceptance fraction: ', (np.mean(sampler.acceptance_fraction))
 # 	if TwoDatasets:
-# 		OutputFilename = DropboxDirectory+'Dropbox/PhD_Analysis/Analysis/Angular Momentum/Mock_Kinematics/'+str(GalName)+'/'+str(GalName)+'_MCMCOutput_TwoDatasets.dat'
+# 		OutputFilename = '/nfs/cluster/gals/sbellstedt/Analysis/Mock_Kinematics/'+str(GalName)+'/'+str(GalName)+'_MCMCOutput_TwoDatasets.dat'
 # 	else:
-# 		OutputFilename = DropboxDirectory+'Dropbox/PhD_Analysis/Analysis/Angular Momentum/Mock_Kinematics/'+str(GalName)+'/'+str(GalName)+'_MCMCOutput.dat'
+# 		OutputFilename = '/nfs/cluster/gals/sbellstedt/Analysis/Mock_Kinematics/'+str(GalName)+'/'+str(GalName)+'_MCMCOutput.dat'
 # 	print 'output filename: ', OutputFilename
 	
 # 	fileOut = open(OutputFilename, 'wb')
@@ -346,9 +343,9 @@ KinematicProducer_mainCall(pathName, MagneticumPathName, GalName, ExistingPhotom
 # 	print '########################################'
 # 	print 'Mean acceptance fraction: ', (np.mean(sampler.acceptance_fraction))
 # 	if TwoDatasets:
-# 		OutputFilename = DropboxDirectory+'Dropbox/PhD_Analysis/Analysis/Angular Momentum/Mock_Kinematics/'+str(GalName)+'/'+str(GalName)+'_MCMCOutput_simsversion_TwoDatasets.dat'
+# 		OutputFilename = '/nfs/cluster/gals/sbellstedt/Analysis/Mock_Kinematics/'+str(GalName)+'/'+str(GalName)+'_MCMCOutput_simsversion_TwoDatasets.dat'
 # 	else:
-# 		OutputFilename = DropboxDirectory+'Dropbox/PhD_Analysis/Analysis/Angular Momentum/Mock_Kinematics/'+str(GalName)+'/'+str(GalName)+'_MCMCOutput_simsversion.dat'
+# 		OutputFilename = '/nfs/cluster/gals/sbellstedt/Analysis/Mock_Kinematics/'+str(GalName)+'/'+str(GalName)+'_MCMCOutput_simsversion.dat'
 # 	print 'output filename: ', OutputFilename
 	
 # 	fileOut = open(OutputFilename, 'wb')
