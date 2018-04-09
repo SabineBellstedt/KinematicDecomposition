@@ -20,6 +20,7 @@ KrigingInput = True # determines whether the SLUGGS dataset is given to MCMC in 
 Photometry = True
 TwoDatasets = False # two weights must be selected when selecting two datasets. 
 Magneticum = False
+GlobularClusters = False
 
 BulgeIntensity = True
 BulgeSize = True
@@ -40,6 +41,9 @@ BulgeAzimuthVariation = True
 DiscAzimuthVariation = True
 SluggsWeight = False
 AtlasWeight = False
+KinematicsWeight = True
+GCWeight = False
+LuminosityWeight = True
 
 if not os.path.exists(str(GalName)): 
 	os.mkdir(str(GalName))
@@ -49,10 +53,10 @@ MagneticumPathName = DropboxDirectory+'Dropbox/PhD_Analysis/data/MagneticumGalax
 # KinematicProducer_mainCall(pathName, MagneticumPathName, GalName, ExistingPhotometry = True, TwoDatasets = True, KrigingInput = True, Magneticum = False)
 
 OutputFilename, ParamSymbol, ParameterNames, Data, PhotometricParameters, PhotometricParameterNames, SpitzerProfile = mainCall_modular(pathName, MagneticumPathName, GalName, \
-	Photometry, KrigingInput, Magneticum, TwoDatasets, BulgeIntensity, BulgeSize, BulgeEllipticity, BulgeSersicIndex, \
+	Photometry, KrigingInput, Magneticum, TwoDatasets, GlobularClusters, BulgeIntensity, BulgeSize, BulgeEllipticity, BulgeSersicIndex, \
 	BulgeRotationScale, BulgeVelocity, BulgeDispersion, BulgeDispersionDropOff, DiscIntensity, DiscSize, DiscEllipticity, \
 	DiscRotationScale, DiscVelocity, DiscDispersion, DiscDispersionDropOff, BulgeAzimuthVariation, DiscAzimuthVariation, \
-	SluggsWeight, AtlasWeight, \
+	SluggsWeight, AtlasWeight, KinematicsWeight, GCWeight, LuminosityWeight, \
 	nwalkers = 800, burnSteps = 500, stepNumber = 100)
 
 # now to directly analyse the output

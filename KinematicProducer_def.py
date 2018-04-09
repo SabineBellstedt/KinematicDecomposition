@@ -98,6 +98,38 @@ def MockKinematicsModel(X, Y, Vel_Observed, VelErr_Observed, VelDisp_Observed, V
 
 	return(ObservedData, ObservedUncertainties, ModelData)
 
+def MockKinematicsModelGC(X, Y, Vel_Observed, VelErr_Observed, phi, ellipticity_bulge, ellipticity_disc, log_I_Bulge, Re_Bulge, n, log_I_Disc, Re_Disc, \
+	Max_vel_disc, DiscRotationScale, AzimuthVariationParameterDisc, Max_vel_bulge, BulgeRotationScale, AzimuthVariationParameterBulge):
+	Radius_Bulge, Radius_Disc = ComponentRadiusFunction(X, Y, phi, ellipticity_bulge, ellipticity_disc)
+	
+	# set up the phyical distribution of points from a bulge component with a sersic profile
+	BulgeIntensity = BulgeIntensityFunction(log_I_Bulge, Radius_Bulge, Re_Bulge, n)
+	
+	# set up the phyical distribution of points from a disc component with an exponential profile
+	DiscIntensity = DiscIntensityFunction(log_I_Disc, Radius_Disc, Re_Disc)
+	
+	# building mock rotational maps. 
+	Angles = positionAngle(X, Y, 0, 0)		
+	
+	DiscRotation = (Max_vel_disc* Radius_Disc / (DiscRotationScale + Radius_Disc) ) * AngularVariationEpsilon(Angles, AzimuthVariationParameterDisc)
+	BulgeRotation = (Max_vel_bulge* Radius_Bulge / (BulgeRotationScale + Radius_Bulge) ) * AngularVariationEpsilon(Angles, AzimuthVariationParameterBulge)
+	BulgeFraction = BulgeIntensity/(BulgeIntensity+DiscIntensity)
+	DiscFraction = DiscIntensity/(BulgeIntensity+DiscIntensity)
+	TotalRotation = (BulgeFraction * BulgeRotation + DiscFraction * DiscRotation)
+	
+
+	# calculating the chi-squared of the match of the rotation field and dispersion field to the observed galaxy
+	ObservedSel = np.where(np.isfinite(Vel_Observed))  # avoid the values for which the model gives infinite 
+													   # velocity values at the centre of the bulge. 
+
+	# needing to combine the velocity and velocity dispersion fits as though they were a single dataset
+
+	ObservedData = Vel_Observed[ObservedSel]
+	ObservedUncertainties = VelErr_Observed[ObservedSel]
+	ModelData = TotalRotation[ObservedSel]
+
+	return(ObservedData, ObservedUncertainties, ModelData)
+
 
 def MockKinematicsModelAnalysis(X, Y, phi, ellipticity_bulge, ellipticity_disc, log_I_Bulge, Re_Bulge, n, log_I_Disc, Re_Disc, \
 	Max_vel_disc, DiscRotationScale, AzimuthVariationParameterDisc, Max_vel_bulge, BulgeRotationScale, AzimuthVariationParameterBulge, \
@@ -279,18 +311,21 @@ def lnlike(theta, Parameters, Data, PhotometricParameters, PhotometricParameterN
 
 
 	if len(SpitzerProfile) > 0:
+		if not 'LuminosityWeight' in Parameters:
+			raise ValueError("Luminosity hyperparameter MUST be selected if the data is being contrained to a luminosity profile.")
+		else:
+			LuminosityWeight = np.array(theta)[np.where(Parameters == 'LuminosityWeight')]
+			# the Spitzer luminosity profile has been provided, and hence we have an extra constraint of the model. 
+			# print PhotometricParameters
+			Spitzer_Radius = np.array(SpitzerProfile[0])
+			Spitzer_Mag = np.array(SpitzerProfile[1])
+			Spitzer_MagErr = np.array(SpitzerProfile[2])
+		
+			ModelMagProfile = -2.5*np.log10(BulgeIntensityFunction(log_I_Bulge, Spitzer_Radius, Re_Bulge, n) + \
+				DiscIntensityFunction(log_I_Disc, Spitzer_Radius, Re_Disc))
+			realChi2_lum = np.sum(np.log(2*np.pi*Spitzer_MagErr**2/LuminosityWeight) + (LuminosityWeight*(Spitzer_Mag - ModelMagProfile)/Spitzer_MagErr)**2.) 
 	
-		# the Spitzer luminosity profile has been provided, and hence we have an extra constraint of the model. 
-		# print PhotometricParameters
-		Spitzer_Radius = np.array(SpitzerProfile[0])
-		Spitzer_Mag = np.array(SpitzerProfile[1])
-		Spitzer_MagErr = np.array(SpitzerProfile[2])
-	
-		ModelMagProfile = -2.5*np.log10(BulgeIntensityFunction(log_I_Bulge, Spitzer_Radius, Re_Bulge, n) + \
-			DiscIntensityFunction(log_I_Disc, Spitzer_Radius, Re_Disc))
-		realChi2_lum = np.sum(np.log(2*np.pi*Spitzer_MagErr**2) + ((Spitzer_Mag - ModelMagProfile)/Spitzer_MagErr)**2.) 
-
-		photometricContraint = True
+			photometricContraint = True
 
 	else:
 		photometricContraint = False  
@@ -298,7 +333,27 @@ def lnlike(theta, Parameters, Data, PhotometricParameters, PhotometricParameterN
 
 
 	# identifying whether or not to implement the hyperparameter regime. 
-	if len(Data) == 12: # at this point the user is fitting to two datasets, and hence we require the use of hyperparameters
+	if len(Data) == 6:
+		if not 'KinematicsWeight' in Parameters:
+			raise ValueError("Kinematics hyperparameter MUST be selected if only a single dataset is used.")
+		else:
+			KinematicsWeight = np.array(theta)[np.where(Parameters == 'KinematicsWeight')]
+			X, Y, Vel_Observed, VelErr_Observed, VelDisp_Observed, VelDispErr_Observed = Data
+			DatasetNumber = 1
+			GCKinematics = False
+	elif len(Data) == 10: # here, only one dataset is being used internally, and the GC velocities are being used
+		if not 'GCWeight' in Parameters:
+			raise ValueError("GC hyperparameter MUST be selected when fitting to the GC dataset.")
+		if not 'KinematicsWeight' in Parameters:
+			raise ValueError("Kinematics hyperparameter MUST be selected if only a single dataset is used.")
+		else:
+			GCWeight = np.array(theta)[np.where(Parameters == 'GCWeight')]
+			KinematicsWeight = np.array(theta)[np.where(Parameters == 'KinematicsWeight')]
+			X, Y, Vel_Observed, VelErr_Observed, VelDisp_Observed, VelDispErr_Observed, \
+				X_GC, Y_GC, Vel_GC, VelErr_GC = Data
+			DatasetNumber = 1 # still only using one central kinematic dataset
+			GCKinematics = True
+	if len(Data) == 12: # at this point the user is fitting to two datasets and no GCs, and hence we require the use of hyperparameters
 		if not 'SluggsWeight' in Parameters:
 			raise ValueError("Hyperparameters MUST be selected when fitting to two datasets.")
 		else:
@@ -307,12 +362,25 @@ def lnlike(theta, Parameters, Data, PhotometricParameters, PhotometricParameterN
 			X, Y, Vel_Observed, VelErr_Observed, VelDisp_Observed, VelDispErr_Observed, \
 			X_2, Y_2, Vel_Observed_2, VelErr_Observed_2, VelDisp_Observed_2, VelDispErr_Observed_2 = Data
 			DatasetNumber = 2
-	elif len(Data) == 6:
-		X, Y, Vel_Observed, VelErr_Observed, VelDisp_Observed, VelDispErr_Observed = Data
-		DatasetNumber = 1
+			GCKinematics = False
+	elif len(Data) == 16: # will now be using two central datasets, plus the GC dataset
+		if not 'SluggsWeight' in Parameters:
+			raise ValueError("Hyperparameters MUST be selected when fitting to two datasets.")
+		if not 'GCWeight' in Parameters:
+			raise ValueError("GC hyperparameter MUST be selected when fitting to the GC dataset.")
+		else:
+			GCWeight = np.array(theta)[np.where(Parameters == 'GCWeight')]
+			sluggsWeight = np.array(theta)[np.where(Parameters == 'SluggsWeight')]
+			atlasWeight = np.array(theta)[np.where(Parameters == 'AtlasWeight')]
+			X, Y, Vel_Observed, VelErr_Observed, VelDisp_Observed, VelDispErr_Observed, \
+				X_2, Y_2, Vel_Observed_2, VelErr_Observed_2, VelDisp_Observed_2, VelDispErr_Observed_2, \
+				X_GC, Y_GC, Vel_GC, VelErr_GC = Data
+			DatasetNumber = 2
+			GCKinematics = True
 	else:
 		raise ValueError("Unexpected input dataset configuration. \n For one dataset, 6 arrays expected, \
-			and for two datasets, 12. {0} provided.".format(len(Data)))
+			and for two datasets, 12. If GC radial velocities are desired as an additional constraint, \
+			then an additional 4 arrays are expected. {0} provided in total.".format(len(Data)))
 
 
 	PA = 90*np.pi/180
@@ -327,7 +395,7 @@ def lnlike(theta, Parameters, Data, PhotometricParameters, PhotometricParameterN
 			Max_vel_disc, DiscRotationScale, AzimuthVariationParameterDisc, Max_vel_bulge, BulgeRotationScale, AzimuthVariationParameterBulge, \
 			CentralBulgeDispersion, CentralDiscDispersion, alpha_Bulge, alpha_Disc)
 		
-		realChi2_kin = np.sum(np.log(2*np.pi*ObservedUncertainties**2) + ((ObservedData - ModelData)/ObservedUncertainties)**2.)
+		realChi2_kin = np.sum(np.log(2*np.pi*ObservedUncertainties**2/KinematicsWeight) + (KinematicsWeight*(ObservedData - ModelData)/ObservedUncertainties)**2.)
 
 	elif DatasetNumber == 2:
 		ObservedData_sluggs, ObservedUncertainties_sluggs, ModelData_sluggs = MockKinematicsModel(X, Y, Vel_Observed, VelErr_Observed, \
@@ -345,6 +413,16 @@ def lnlike(theta, Parameters, Data, PhotometricParameters, PhotometricParameterN
 		realChi2_atlas = np.sum(np.log(2*np.pi*ObservedUncertainties_atlas**2/atlasWeight) + (atlasWeight*(ObservedData_atlas - ModelData_atlas)/ObservedUncertainties_atlas)**2.)
 			
 		realChi2_kin = 	realChi2_sluggs + realChi2_atlas
+
+	# depending on whether the GC radial velocity dataset is included, the final realChi2_kin value will change:
+	if GCKinematics:
+		ObservedData_GC, ObservedUncertainties_GC, ModelData_GC = MockKinematicsModelGC(X_GC, Y_GC, Vel_GC, VelErr_GC, phi, ellipticity_bulge, ellipticity_disc, \
+			log_I_Bulge, Re_Bulge, n, log_I_Disc, Re_Disc, Max_vel_disc, DiscRotationScale, AzimuthVariationParameterDisc, Max_vel_bulge, BulgeRotationScale, \
+			AzimuthVariationParameterBulge)
+
+		realChi2_GC = np.sum(np.log(2*np.pi*ObservedUncertainties_GC**2/GCWeight) + (GCWeight*(ObservedData_GC - ModelData_GC)/ObservedUncertainties_GC)**2.)
+
+		realChi2_kin += realChi2_GC # adding the contribution of the GC kinematics
 
 	if photometricContraint:	
 		Chi2Total = realChi2_kin + realChi2_lum # now each of the datasets is appropriately weighted, and it is the likelihoods themselves that are being multiplied		
@@ -377,12 +455,12 @@ def InitialWalkerPosition(WalkerNumber, LowerBounds, UpperBounds, PriorType):
 
 
 def mainCall_modular(pathName, MagneticumPathName, GalName, \
-	Photometry = False, KrigingInput = True, Magneticum = False, TwoDatasets = True, \
+	Photometry = False, KrigingInput = True, Magneticum = False, TwoDatasets = True, GlobularClusters = False, \
 	BulgeIntensity = True, BulgeSize = True, BulgeEllipticity = True, BulgeSersicIndex = True, \
 	BulgeRotationScale = True, BulgeVelocity = True, BulgeDispersion = True, BulgeDispersionDropOff = True, \
 	DiscIntensity = True, DiscSize = True, DiscEllipticity = True, DiscRotationScale = True, DiscVelocity = True, \
 	DiscDispersion = True, DiscDispersionDropOff = True, BulgeAzimuthVariation = True, DiscAzimuthVariation = True, \
-	SluggsWeight = True, AtlasWeight = True, \
+	SluggsWeight = True, AtlasWeight = True, GCWeight = False,  \
 	nwalkers = 2000, burnSteps = 1000, stepNumber = 4000):
 
 	if KrigingInput:
@@ -405,6 +483,13 @@ def mainCall_modular(pathName, MagneticumPathName, GalName, \
 		Data = [X, Y, Vel_Observed, VelErr_Observed, VelDisp_Observed, VelDispErr_Observed, X_2, Y_2, Vel_Observed_2, VelErr_Observed_2, VelDisp_Observed_2, VelDispErr_Observed_2]
 	else:
 		Data = [X, Y, Vel_Observed, VelErr_Observed, VelDisp_Observed, VelDispErr_Observed]
+
+	if GlobularClusters:
+		X_GC, Y_GC, Vel_GC, VelErr_GC = np.loadtxt(pathName+str(GalName)+'/GC_RVs_'+str(GalName)+'.txt')
+		Data.append(X_GC)
+		Data.append(Y_GC)
+		Data.append(Vel_GC)
+		Data.append(VelErr_GC)
 
 
 	import time
@@ -548,6 +633,27 @@ def mainCall_modular(pathName, MagneticumPathName, GalName, \
 		PriorType.append('exponential')
 		ParameterNames.append('AtlasWeight')
 		ParamSymbol.append(r"$\omega_{\rm ATLAS}$")
+	if KinematicsWeight:
+		ndim += 1
+		LowerBounds.append(0)
+		UpperBounds.append(10)
+		PriorType.append('exponential')
+		ParameterNames.append('KinematicsWeight')
+		ParamSymbol.append(r"$\omega_{\rm kin}$")
+	if GCWeight:
+		ndim += 1
+		LowerBounds.append(0)
+		UpperBounds.append(10)
+		PriorType.append('exponential')
+		ParameterNames.append('GCWeight')
+		ParamSymbol.append(r"$\omega_{\rm GC}$")
+	if LuminosityWeight:
+		ndim += 1
+		LowerBounds.append(0)
+		UpperBounds.append(10)
+		PriorType.append('exponential')
+		ParameterNames.append('LuminosityWeight')
+		ParamSymbol.append(r"$\omega_{\rm lum}$")
 	# making a selection of which free parameters are required, in order to select the walker initial positions and define prior boundaries
 	pos, boundaries = InitialWalkerPosition(nwalkers, LowerBounds, UpperBounds, PriorType)
 
@@ -603,6 +709,8 @@ def mainCall_modular(pathName, MagneticumPathName, GalName, \
 		suffix = suffix + 'Photometry_'
 	if Magneticum:
 		suffix = suffix + 'Magneticum_'
+	if GlobularClusters:
+		suffix = suffix + 'GC_'
 	suffix = suffix + 'FreeParam-'+str(ndim)
 
 	if not os.path.exists(pathName+str(GalName)+'/'+suffix): 

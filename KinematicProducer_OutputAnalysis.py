@@ -46,6 +46,8 @@ for GalName in Galaxies:
 		suffix = suffix + 'Photometry_'
 	if Magneticum:
 		suffix = suffix + 'Magneticum_'
+	if GlobularClusters:
+		suffix = suffix + 'GC_'
 
 	print GalName
 
