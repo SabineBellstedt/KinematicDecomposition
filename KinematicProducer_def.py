@@ -353,7 +353,7 @@ def lnlike(theta, Parameters, Data, PhotometricParameters, PhotometricParameterN
 				X_GC, Y_GC, Vel_GC, VelErr_GC = Data
 			DatasetNumber = 1 # still only using one central kinematic dataset
 			GCKinematics = True
-	if len(Data) == 12: # at this point the user is fitting to two datasets and no GCs, and hence we require the use of hyperparameters
+	elif len(Data) == 12: # at this point the user is fitting to two datasets and no GCs, and hence we require the use of hyperparameters
 		if not 'SluggsWeight' in Parameters:
 			raise ValueError("Hyperparameters MUST be selected when fitting to two datasets.")
 		else:
@@ -460,7 +460,7 @@ def mainCall_modular(pathName, MagneticumPathName, GalName, \
 	BulgeRotationScale = True, BulgeVelocity = True, BulgeDispersion = True, BulgeDispersionDropOff = True, \
 	DiscIntensity = True, DiscSize = True, DiscEllipticity = True, DiscRotationScale = True, DiscVelocity = True, \
 	DiscDispersion = True, DiscDispersionDropOff = True, BulgeAzimuthVariation = True, DiscAzimuthVariation = True, \
-	SluggsWeight = True, AtlasWeight = True, GCWeight = False,  \
+	SluggsWeight = True, AtlasWeight = True, KinematicsWeight = True, GCWeight = False, LuminosityWeight = False, \
 	nwalkers = 2000, burnSteps = 1000, stepNumber = 4000):
 
 	if KrigingInput:
