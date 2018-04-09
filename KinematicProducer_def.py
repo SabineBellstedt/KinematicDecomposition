@@ -1,8 +1,6 @@
 # retrieve dictionaries
 import os, sys, random
 import numpy as np
-from matplotlib.patches import Ellipse
-from matplotlib.path import Path
 
 DropboxDirectory = os.getcwd().split('Dropbox')[0]
 lib_path = os.path.abspath(DropboxDirectory+'Dropbox/PhD_Analysis/Library') 
@@ -10,49 +8,6 @@ sys.path.append(lib_path)
 from galaxyParametersDictionary_v9 import *
 from Sabine_Define import *
 
-
-
-def krigingFileReadAll(Kriging_path, GalName):
-	dtype1 = np.dtype([('ra', 'float'), ('dec', 'float'), ('vel', '|S17'), ('velerr', '|S17')])
-	Array = np.loadtxt(Kriging_path+str(GalName)+'/'+str(GalName)+'_gridKrig_vel.txt', dtype = dtype1)
-	
-	RA = Array['ra']
-	Dec = Array['dec']
-	Vel = np.asfarray(Array['vel'], dtype='float')
-	VelErr = np.asfarray(Array['velerr'], dtype='float')
-	
-	dtype1 = np.dtype([('ra', 'float'), ('dec', 'float'), ('veldisp', '|S17'), ('veldisperr', '|S17')])
-	Array = np.loadtxt(Kriging_path+str(GalName)+'/'+str(GalName)+'_gridKrig_sigma.txt', dtype = dtype1)
-	
-	VelDisp = np.asfarray(Array['veldisp'], dtype='float')
-	VelDispErr = np.asfarray(Array['veldisperr'], dtype='float')
-	return (RA, Dec, Vel, VelErr, VelDisp, VelDispErr)
-
-def SpitzerMagProfileFinder(GalName, Spitzer_path):
-    DropboxDirectory = os.getcwd().split('Dropbox')[0]
-    filename = glob.glob(Spitzer_path+'/ngc'+GalName.split('C')[1]+'*logscale.ell')[0]
-    # print filename
-    file=open(filename, 'r')
-    lines=file.readlines()
-    file.close()
-
-    Radius, Mag, Error = [], [], []
-    for line in lines:
-        if line[0] != '#':
-            try:
-                Radius.append(1.22*float(line.split()[1])) # to convert pixel scale to arcsecond scale
-                Mag.append(float(line.split()[18])) 
-                # Luminosity.append(10**((3.24-AbsMag)/2.5))# the solar magnitude in the Spitzer 3.6 micron band is 3.24
-                Error.append(np.max([float(line.split()[19]), float(line.split()[20])])) # need to calculate
-                # print float(line.split()[19])
-            except:
-                # print 'empty line'
-                Line = True
-
-    Radius = np.array(Radius)
-    Mag = np.array(Mag)
-    Error = np.array(Error)
-    return Radius, Mag, Error
 
 def BulgeIntensityFunction(log_I_Bulge, Radius_Bulge, Re_Bulge, n):
 	k = 1.9992*n-0.3271
@@ -104,19 +59,13 @@ def MockKinematicsModel(X, Y, Vel_Observed, VelErr_Observed, VelDisp_Observed, V
 	CentralBulgeDispersion, CentralDiscDispersion, alpha_Bulge, alpha_Disc):
 	Radius_Bulge, Radius_Disc = ComponentRadiusFunction(X, Y, phi, ellipticity_bulge, ellipticity_disc)
 	
-	'''
-	set up the phyical distribution of points from a bulge component with a sersic profile
-	'''
+	# set up the phyical distribution of points from a bulge component with a sersic profile
 	BulgeIntensity = BulgeIntensityFunction(log_I_Bulge, Radius_Bulge, Re_Bulge, n)
 	
-	'''
-	set up the phyical distribution of points from a disc component with an exponential profile
-	'''
+	# set up the phyical distribution of points from a disc component with an exponential profile
 	DiscIntensity = DiscIntensityFunction(log_I_Disc, Radius_Disc, Re_Disc)
 	
-	'''
-	building mock rotational maps. 
-	'''
+	# building mock rotational maps. 
 	Angles = positionAngle(X, Y, 0, 0)		
 	
 	DiscRotation = (Max_vel_disc* Radius_Disc / (DiscRotationScale + Radius_Disc) ) * AngularVariationEpsilon(Angles, AzimuthVariationParameterDisc)
@@ -126,9 +75,7 @@ def MockKinematicsModel(X, Y, Vel_Observed, VelErr_Observed, VelDisp_Observed, V
 	TotalRotation = (BulgeFraction * BulgeRotation + DiscFraction * DiscRotation)
 	
 	
-	'''
-	Calculating the velocity dispersions
-	'''
+	# Calculating the velocity dispersions
 	# using the power law equation as given by Cappellari et al (2006)
 	BulgeDispersion = CentralBulgeDispersion * Radius_Bulge**(-alpha_Bulge)
 	DiscDispersion = CentralDiscDispersion * Radius_Disc**(-alpha_Disc)
@@ -139,9 +86,6 @@ def MockKinematicsModel(X, Y, Vel_Observed, VelErr_Observed, VelDisp_Observed, V
 	
 	TotalDispersion = BulgeDispersion * BulgeFraction + DiscDispersion * DiscFraction
 	
-	#calculating the central intensity of light, as a normalisation factor. 
-	# PeakIntensity = BulgeIntensity[np.where((X == 0) & (Y == 0))] + DiscIntensity[np.where((X == 0) & (Y == 0))]
-
 	# calculating the chi-squared of the match of the rotation field and dispersion field to the observed galaxy
 	ObservedSel = np.where(np.isfinite(Vel_Observed) & np.isfinite(TotalDispersion)) # avoid the values for which the model gives infinite 
 																					 # velocity dispersion values at the centre of the bulge. 
@@ -161,19 +105,13 @@ def MockKinematicsModelAnalysis(X, Y, phi, ellipticity_bulge, ellipticity_disc, 
 																			 # analysis code. 
 	Radius_Bulge, Radius_Disc = ComponentRadiusFunction(X, Y, phi, ellipticity_bulge, ellipticity_disc)
 	
-	'''
-	set up the phyical distribution of points from a bulge component with a sersic profile
-	'''
+	# set up the phyical distribution of points from a bulge component with a sersic profile	
 	BulgeIntensity = BulgeIntensityFunction(log_I_Bulge, Radius_Bulge, Re_Bulge, n)
 	
-	'''
-	set up the phyical distribution of points from a disc component with an exponential profile
-	'''
+	# set up the phyical distribution of points from a disc component with an exponential profile
 	DiscIntensity = DiscIntensityFunction(log_I_Disc, Radius_Disc, Re_Disc)
 	
-	'''
-	building mock rotational maps. 
-	'''
+	# building mock rotational maps. 
 	# transforming the Angular term
 	Angles = positionAngle(X, Y, 0, 0)
 	
@@ -181,13 +119,9 @@ def MockKinematicsModelAnalysis(X, Y, phi, ellipticity_bulge, ellipticity_disc, 
 	BulgeRotation = (Max_vel_bulge* Radius_Bulge / (BulgeRotationScale+ Radius_Bulge) ) * AngularVariationEpsilon(Angles, AzimuthVariationParameterBulge)
 	BulgeFraction = BulgeIntensity/(BulgeIntensity+DiscIntensity)
 	DiscFraction = DiscIntensity/(BulgeIntensity+DiscIntensity)
-	TotalRotation = (BulgeFraction * BulgeRotation + DiscFraction * DiscRotation)
+	TotalRotation = (BulgeFraction * BulgeRotation + DiscFraction * DiscRotation)	
 	
-	
-	
-	'''
-	Calculating the velocity dispersions
-	'''
+	# Calculating the velocity dispersions
 	BulgeDispersion = CentralBulgeDispersion * Radius_Bulge**(-alpha_Bulge)
 	DiscDispersion = CentralDiscDispersion * Radius_Disc**(-alpha_Disc)
 	
@@ -206,9 +140,7 @@ def MockKinematicsModelAnalysis(X, Y, phi, ellipticity_bulge, ellipticity_disc, 
 	TotalRotation = np.array(TotalRotation).reshape(gridSizex,gridSizey)
 	DiscDispersion = np.array(DiscDispersion).reshape(gridSizex,gridSizey)
 	BulgeDispersion = np.array(BulgeDispersion).reshape(gridSizex,gridSizey)
-	TotalDispersion = np.array(TotalDispersion).reshape(gridSizex,gridSizey)
-	# Angles = np.array(Angles).reshape(gridSizex,gridSizey)
-	
+	TotalDispersion = np.array(TotalDispersion).reshape(gridSizex,gridSizey)	
 	
 	TotalIntensity = BulgeIntensity + DiscIntensity
 	
@@ -224,139 +156,6 @@ def MockKinematicsModelAnalysis(X, Y, phi, ellipticity_bulge, ellipticity_disc, 
 	return (X, Y, BulgeIntensity, DiscIntensity, DiscRotation, BulgeRotation, TotalRotation, DiscDispersion, BulgeDispersion, TotalDispersion, \
 		TotalIntensity, BulgeRotationField, DiscRotationField, MinimumRotation, MaximumRotation, MinimumDispersion, MaximumDispersion)
 
-def IntensityPlottingFunction(X, Y, BulgeIntensity, DiscIntensity, TotalIntensity, sizeMapx, sizeMapy, phi, Ellipticity_measured, HalfLightRadius, Linewidth_parameter = 0.8, filename = 'BulgeDiscTest.pdf'):
-	fig=plt.figure(figsize=(11, 3))
-	ax1=fig.add_subplot(131, aspect = 'equal')
-	ax2=fig.add_subplot(132, aspect = 'equal')
-	ax3=fig.add_subplot(133, aspect = 'equal')
-	ax1.pcolor(X, Y, np.log10(BulgeIntensity), cmap = 'jet', vmin=np.min(np.log10(TotalIntensity)), vmax=np.max(np.log10(TotalIntensity)))
-	CS1 = ax1.contour(X, Y, np.log10(BulgeIntensity), colors='k', linewidths = Linewidth_parameter)
-	ax1.clabel(CS1, fontsize=7, inline=1)
-	ax1.set_title('Bulge')
-	ax2.pcolor(X, Y, np.log10(DiscIntensity), cmap = 'jet', vmin=np.min(np.log10(TotalIntensity)), vmax=np.max(np.log10(TotalIntensity)))
-	CS2 = ax2.contour(X, Y, np.log10(DiscIntensity), colors='k', linewidths = Linewidth_parameter)
-	ax2.clabel(CS2, fontsize=7, inline=1)
-	ax2.set_title('Disc')
-	ax3.pcolor(X, Y, np.log10(TotalIntensity), cmap = 'jet', vmin=np.min(np.log10(TotalIntensity)), vmax=np.max(np.log10(TotalIntensity)))
-	CS3 = ax3.contour(X, Y, np.log10(TotalIntensity), colors='k', linewidths = Linewidth_parameter)
-	ax3.clabel(CS3, fontsize=7, inline=1)
-	ax3.set_title('Total')
-	
-	AxialRatio = 1 - Ellipticity_measured
-	radii = [1, 2, 3, 4]
-	ellipses = [Ellipse(xy=[0,0], width=(2.*jj*HalfLightRadius/np.sqrt(AxialRatio)), 
-		height=(2.*jj*HalfLightRadius*np.sqrt(AxialRatio)), angle=0, 
-		edgecolor = 'white', facecolor = 'none', fill = False, linestyle = 'dashed', linewidth = 2) for jj in radii]
-	for ee in ellipses:
-		ax3.add_artist(ee)
-	
-	for ax in [ax2, ax3]:
-		ax.set_yticklabels([])
-	plt.subplots_adjust(left = 0.05, right = 0.95, hspace = 0., wspace = 0.01)
-	plt.savefig(filename)
-	plt.close()
-
-	return (Ellipticity_measured, HalfLightRadius)
-
-def RotationPlottingFunction(X, Y, BulgeRotationField, DiscRotationField, TotalRotation, MinimumRotation, MaximumRotation, \
-	HalfLightRadius, AxialRatio, Linewidth_parameter = 0.8, filename = 'KinematicTest.pdf'):
-	fig=plt.figure(figsize=(11, 3))
-	ax1=fig.add_subplot(131, aspect = 'equal')
-	ax2=fig.add_subplot(132, aspect = 'equal')
-	ax3=fig.add_subplot(133, aspect = 'equal')
-	ax1.pcolor(X, Y, BulgeRotationField, cmap = 'jet', vmin=MinimumRotation, vmax=MaximumRotation)
-	CS1 = ax1.contour(X, Y, BulgeRotationField, colors='k', linewidths = Linewidth_parameter)
-	ax1.clabel(CS1, fontsize=7, inline=1)
-	ax1.set_title('Bulge Rotation')
-	ax2.pcolor(X, Y, DiscRotationField, cmap = 'jet', vmin=MinimumRotation, vmax=MaximumRotation)
-	CS2 = ax2.contour(X, Y, DiscRotationField, colors='k', linewidths = Linewidth_parameter)
-	ax2.clabel(CS2, fontsize=7, inline=1)
-	ax2.set_title('Disc Rotation')
-	ax3.pcolor(X, Y, TotalRotation, cmap = 'jet', vmin=MinimumRotation, vmax=MaximumRotation)
-	CS3 = ax3.contour(X, Y, TotalRotation, colors='k', linewidths = Linewidth_parameter)
-	ax3.clabel(CS3, fontsize=7, inline=1)
-	ax3.set_title('Total Rotation')
-	radii = [1, 2, 3, 4]
-	ellipses = [Ellipse(xy=[0,0], width=(2.*jj*HalfLightRadius/np.sqrt(AxialRatio)), 
-		height=(2.*jj*HalfLightRadius*np.sqrt(AxialRatio)), angle=0, 
-		edgecolor = 'white', facecolor = 'none', fill = False, linestyle = 'dashed', linewidth = 2) for jj in radii]
-	for ee in ellipses:
-		ax3.add_artist(ee)
-	for ax in [ax2, ax3]:
-		ax.set_yticklabels([])
-	plt.subplots_adjust(left = 0.05, right = 0.95, hspace = 0., wspace = 0.01)
-	plt.savefig(filename)
-	plt.close()
-
-	
-
-def RelativeResidualPlottingFunction(X, Y, ModelProperty, ObservedProperty, ObservedPropertyErr, \
-	HalfLightRadius, AxialRatio, Linewidth_parameter = 0.8, filename = 'RelativeResidual.pdf'):
-
-	fig=plt.figure(figsize=(5, 3))
-	ax1=fig.add_subplot(111, aspect = 'equal')
-	ax1.pcolor(X, Y, ObservedProperty-ModelProperty, cmap = 'coolwarm', vmin=-50, vmax=50)
-	CS1 = ax1.contour(X, Y, ObservedProperty-ModelProperty, colors='k', linewidths = Linewidth_parameter)
-	ax1.clabel(CS1, fontsize=7, inline=1)
-	ax1.set_title('Rotation Residual')
-
-	radii = [1, 2, 3, 4]
-	ellipses = [Ellipse(xy=[0,0], width=(2.*jj*HalfLightRadius/np.sqrt(AxialRatio)), 
-		height=(2.*jj*HalfLightRadius*np.sqrt(AxialRatio)), angle=0, 
-		edgecolor = 'white', facecolor = 'none', fill = False, linestyle = 'dashed', linewidth = 2) for jj in radii]
-	for ee in ellipses:
-		ax1.add_artist(ee)
-	plt.subplots_adjust(left = 0.05, right = 0.95, hspace = 0., wspace = 0.01)
-	plt.savefig(filename.split('.pdf')[0]+'_Residual.pdf')
-	plt.close()
-
-	fig=plt.figure(figsize=(5, 3))
-	ax1=fig.add_subplot(111, aspect = 'equal')
-	ax1.pcolor(X, Y, (ObservedProperty-ModelProperty) / ObservedPropertyErr, cmap = 'coolwarm', vmin=-20, vmax=20)
-	CS1 = ax1.contour(X, Y, (ObservedProperty-ModelProperty) / ObservedPropertyErr, colors='k', linewidths = Linewidth_parameter)
-	ax1.clabel(CS1, fontsize=7, inline=1)
-	ax1.set_title('Relative Rotation Residual')
-
-	radii = [1, 2, 3, 4]
-	ellipses = [Ellipse(xy=[0,0], width=(2.*jj*HalfLightRadius/np.sqrt(AxialRatio)), 
-		height=(2.*jj*HalfLightRadius*np.sqrt(AxialRatio)), angle=0, 
-		edgecolor = 'white', facecolor = 'none', fill = False, linestyle = 'dashed', linewidth = 2) for jj in radii]
-	for ee in ellipses:
-		ax1.add_artist(ee)
-	plt.subplots_adjust(left = 0.05, right = 0.95, hspace = 0., wspace = 0.01)
-	plt.savefig(filename.split('.pdf')[0]+'_RelativeResidual.pdf')
-	plt.close()
-
-
-def DispersionPlottingFunction(X, Y, BulgeDispersion, DiscDispersion, TotalDispersion, MinimumDispersion, MaximumDispersion, \
-	HalfLightRadius, AxialRatio, Linewidth_parameter = 0.8, filename = 'DispersionTest.pdf'):
-	fig=plt.figure(figsize=(11, 3))
-	ax1=fig.add_subplot(131, aspect = 'equal')
-	ax2=fig.add_subplot(132, aspect = 'equal')
-	ax3=fig.add_subplot(133, aspect = 'equal')
-	ax1.pcolor(X, Y, BulgeDispersion, cmap = 'jet', vmin=MinimumDispersion, vmax=MaximumDispersion)
-	ax1.set_title('Bulge Dispersion')
-	CS1 = ax1.contour(X, Y, BulgeDispersion, colors='k', linewidths = Linewidth_parameter)
-	ax1.clabel(CS1, fontsize=7, inline=1)
-	ax2.pcolor(X, Y, DiscDispersion, cmap = 'jet', vmin=MinimumDispersion, vmax=MaximumDispersion)
-	ax2.set_title('Disc Dispersion')
-	CS2 = ax2.contour(X, Y, DiscDispersion, colors='k', linewidths = Linewidth_parameter)
-	ax2.clabel(CS2, fontsize=7, inline=1)
-	ax3.pcolor(X, Y, TotalDispersion, cmap = 'jet', vmin=MinimumDispersion, vmax=MaximumDispersion)
-	CS3 = ax3.contour(X, Y, TotalDispersion, colors='k', linewidths = Linewidth_parameter)
-	ax3.clabel(CS3, fontsize=7, inline=1)
-	ax3.set_title('Total Dispersion')
-	radii = [1, 2, 3, 4]
-	ellipses = [Ellipse(xy=[0,0], width=(2.*jj*HalfLightRadius/np.sqrt(AxialRatio)), 
-		height=(2.*jj*HalfLightRadius*np.sqrt(AxialRatio)), angle=0, 
-		edgecolor = 'white', facecolor = 'none', fill = False, linestyle = 'dashed', linewidth = 2) for jj in radii]
-	for ee in ellipses:
-		ax3.add_artist(ee)
-	for ax in [ax2, ax3]:
-		ax.set_yticklabels([])
-	plt.subplots_adjust(left = 0.05, right = 0.95, hspace = 0., wspace = 0.01)
-	plt.savefig(filename)
-	plt.close()
 
 def CheckBoundaryConditions(Parameters, ParameterBoundaries):
 	ParameterNumber = len(Parameters)
@@ -385,203 +184,206 @@ def lnprior(theta, *args):
 	else:
 		return -np.inf
 
-def lnlike_RotationAndDispersion(theta, *args):
-	try:
-		ellipticity_bulge, BulgeRotationScale, Max_vel_bulge, CentralBulgeDispersion, alpha_Bulge, log_I_Disc, \
-		Re_Disc, DiscRotationScale, Max_vel_disc, CentralDiscDispersion, alpha_Disc, AzimuthVariationParameterBulge, AzimuthVariationParameterDisc = theta
-		tmpInputArgs = args[0]
-		(X, Y, Vel_Observed, VelErr_Observed, VelDisp_Observed, VelDispErr_Observed, \
-			EffectiveRadius, ObservedEllipticity, n, Re_Bulge, mag_Bulge, Spitzer_Radius, Spitzer_Mag, Spitzer_MagErr) = tmpInputArgs
-		PA = 90*np.pi/180
-		phi=(PA-np.pi/2.0) # accounting for the different 0 PA convention in astronomy to mathematics
-		log_I_Bulge = -mag_Bulge / 2.5
-			
-		'''
-		in an attempt to reduce the number of free parameters, and also to use the fact that we know the projected 
-		ellipticity of the modelled galaxy, here we reduce the info about the ellipticity of one component
-		'''
-		
-		BulgeIntensity_ellipticityTest = BulgeIntensityFunction(log_I_Bulge, EffectiveRadius, Re_Bulge, n)
-		DiscIntensity_ellipticityTest = DiscIntensityFunction(log_I_Disc, EffectiveRadius, Re_Disc)
-		
-		BulgeFraction_ellipticityTest = BulgeIntensity_ellipticityTest / (BulgeIntensity_ellipticityTest + DiscIntensity_ellipticityTest)
-		DiscFraction_ellipticityTest = DiscIntensity_ellipticityTest / (BulgeIntensity_ellipticityTest + DiscIntensity_ellipticityTest)
-		
-		ellipticity_disc = (ObservedEllipticity - BulgeFraction_ellipticityTest*ellipticity_bulge) / DiscFraction_ellipticityTest
-	
-		# calculating the Chi2/dof from the fit to the luminosity profile
-		# we only want to fit the profile in the region where we have actual data
-		ModelMagProfile = -2.5*np.log10(BulgeIntensityFunction(log_I_Bulge, Spitzer_Radius, Re_Bulge, n) + \
-			DiscIntensityFunction(log_I_Disc, Spitzer_Radius, Re_Disc))
-		# print len(Spitzer_Radius), Spitzer_MagErr
-		realChi2_lum = np.sum(np.log(2*np.pi*Spitzer_MagErr**2) + ((Spitzer_Mag - ModelMagProfile)/Spitzer_MagErr)**2.)
-		if (ellipticity_disc > 1) | (ellipticity_disc < 0) | (np.isfinite(ellipticity_disc) == False):
-			Chi2Total = np.inf
-		else:		
-			ObservedData, ObservedUncertainties, ModelData = MockKinematicsModel(X, Y, Vel_Observed, VelErr_Observed, \
-				VelDisp_Observed, VelDispErr_Observed, phi, ellipticity_bulge, ellipticity_disc, log_I_Bulge, Re_Bulge, n, log_I_Disc, Re_Disc, \
-				Max_vel_disc, DiscRotationScale, AzimuthVariationParameterDisc, Max_vel_bulge, BulgeRotationScale, AzimuthVariationParameterBulge, \
-				CentralBulgeDispersion, CentralDiscDispersion, alpha_Bulge, alpha_Disc)
-			
-			realChi2_kin = np.sum(np.log(2*np.pi*ObservedUncertainties**2) + ((ObservedData - ModelData)/ObservedUncertainties)**2.)
-			
-			Chi2Total = realChi2_kin + realChi2_lum # now each of the datasets is appropriately weighted, and it is the likelihoods themselves that are being multiplied
-			
-	except:
-		Chi2Total = np.inf
-	return -Chi2Total/2
+def lnprob(theta, *args):
+	boundaries, ParameterNames, Data, PhotometricParameters, PhotometricParameterNames, SpitzerProfile = args
 
-
-def lnprob_RotationAndDispersion(theta, *args):
-	arg1 = args[0]
-	arg2 = args[1:]
-
-	lp = lnprior(theta, arg1)
+	lp = lnprior(theta, boundaries)
 	if not np.isfinite(lp):
-	    return -np.inf
-	return lp + lnlike_RotationAndDispersion(theta, arg2) #In logarithmic space, the multiplication becomes sum.
-
-def lnlike_RotationAndDispersion_hyperparameters(theta, *args):
-	try:
-		ellipticity_bulge, BulgeRotationScale, Max_vel_bulge, CentralBulgeDispersion, alpha_Bulge, log_I_Disc, \
-		Re_Disc, DiscRotationScale, Max_vel_disc, CentralDiscDispersion, alpha_Disc, AzimuthVariationParameterBulge, AzimuthVariationParameterDisc, \
-		sluggsWeight, atlasWeight = theta
-		tmpInputArgs = args[0]
-		(X, Y, Vel_Observed, VelErr_Observed, VelDisp_Observed, VelDispErr_Observed, \
-			X_2, Y_2, Vel_Observed_2, VelErr_Observed_2, VelDisp_Observed_2, VelDispErr_Observed_2, \
-			EffectiveRadius, ObservedEllipticity, n, Re_Bulge, mag_Bulge, Spitzer_Radius, Spitzer_Mag, Spitzer_MagErr) = tmpInputArgs
-		PA = 90*np.pi/180
-		phi=(PA-np.pi/2.0) # accounting for the different 0 PA convention in astronomy to mathematics
-		log_I_Bulge = -mag_Bulge / 2.5
-			
-		'''
-		in an attempt to reduce the number of free parameters, and also to use the fact that we know the projected 
-		ellipticity of the modelled galaxy, here we reduce the info about the ellipticity of one component
-		'''
-		
-		BulgeIntensity_ellipticityTest = BulgeIntensityFunction(log_I_Bulge, EffectiveRadius, Re_Bulge, n)
-		DiscIntensity_ellipticityTest = DiscIntensityFunction(log_I_Disc, EffectiveRadius, Re_Disc)
-		
-		BulgeFraction_ellipticityTest = BulgeIntensity_ellipticityTest / (BulgeIntensity_ellipticityTest + DiscIntensity_ellipticityTest)
-		DiscFraction_ellipticityTest = DiscIntensity_ellipticityTest / (BulgeIntensity_ellipticityTest + DiscIntensity_ellipticityTest)
-		
-		ellipticity_disc = (ObservedEllipticity - BulgeFraction_ellipticityTest*ellipticity_bulge) / DiscFraction_ellipticityTest
-		
-		# calculating the Chi2/dof from the fit to the luminosity profile
-		# we only want to fit the profile in the region where we have actual data
-		ModelMagProfile = -2.5*np.log10(BulgeIntensityFunction(log_I_Bulge, Spitzer_Radius, Re_Bulge, n) + \
-			DiscIntensityFunction(log_I_Disc, Spitzer_Radius, Re_Disc))
-
-		realChi2_lum = np.sum(np.log(2*np.pi*Spitzer_MagErr**2) + ((Spitzer_Mag - ModelMagProfile)/Spitzer_MagErr)**2.)
-		if (ellipticity_disc > 1) | (ellipticity_disc < 0) | (np.isfinite(ellipticity_disc) == False):
-			Chi2Total = np.inf
-		else:		
-			ObservedData_sluggs, ObservedUncertainties_sluggs, ModelData_sluggs = MockKinematicsModel(X, Y, Vel_Observed, VelErr_Observed, \
-				VelDisp_Observed, VelDispErr_Observed, phi, ellipticity_bulge, ellipticity_disc, log_I_Bulge, Re_Bulge, n, log_I_Disc, Re_Disc, \
-				Max_vel_disc, DiscRotationScale, AzimuthVariationParameterDisc, Max_vel_bulge, BulgeRotationScale, AzimuthVariationParameterBulge, \
-				CentralBulgeDispersion, CentralDiscDispersion, alpha_Bulge, alpha_Disc)
-		
-			realChi2_sluggs = np.sum(np.log(2*np.pi*ObservedUncertainties_sluggs**2/sluggsWeight) + (sluggsWeight*(ObservedData_sluggs - ModelData_sluggs)/ObservedUncertainties_sluggs)**2.)
-		
-			ObservedData_atlas, ObservedUncertainties_atlas, ModelData_atlas = MockKinematicsModel(X_2, Y_2, Vel_Observed_2, VelErr_Observed_2, \
-				VelDisp_Observed_2, VelDispErr_Observed_2, phi, ellipticity_bulge, ellipticity_disc, log_I_Bulge, Re_Bulge, n, log_I_Disc, Re_Disc, \
-				Max_vel_disc, DiscRotationScale, AzimuthVariationParameterDisc, Max_vel_bulge, BulgeRotationScale, AzimuthVariationParameterBulge, \
-				CentralBulgeDispersion, CentralDiscDispersion, alpha_Bulge, alpha_Disc)
-		
-			realChi2_atlas = np.sum(np.log(2*np.pi*ObservedUncertainties_atlas**2/atlasWeight) + (atlasWeight*(ObservedData_atlas - ModelData_atlas)/ObservedUncertainties_atlas)**2.)
-			
-			Chi2Total = realChi2_sluggs + realChi2_atlas + realChi2_lum # now each of the datasets is appropriately weighted, and it is the likelihoods themselves that are being multiplied
-	except:
-		Chi2Total = np.inf
-	return -Chi2Total/2
-
-
-def lnprob_RotationAndDispersion_hyperparameters(theta, *args):
-	arg1 = args[0]
-	arg2 = args[1:]
-
-	lp = lnprior(theta, arg1)
-	if not np.isfinite(lp):
-		# print 'problem'
 		return -np.inf
-	# print 'some good steps'
-	return lp + lnlike_RotationAndDispersion_hyperparameters(theta, arg2) #In logarithmic space, the multiplication becomes sum.
+	return lp + lnlike(theta, ParameterNames, Data, PhotometricParameters, PhotometricParameterNames, SpitzerProfile) #In logarithmic space, the multiplication becomes sum.
 
-def lnlike_RotationAndDispersion_sims(theta, *args):
-	try:
-		log_I_Bulge, Re_Bulge, ellipticity_bulge, n, BulgeRotationScale, Max_vel_bulge, CentralBulgeDispersion, alpha_Bulge, log_I_Disc, \
-		Re_Disc, ellipticity_disc, DiscRotationScale, Max_vel_disc, CentralDiscDispersion, alpha_Disc, AzimuthVariationParameterBulge, AzimuthVariationParameterDisc = theta
-		tmpInputArgs = args[0]
-		(X, Y, Vel_Observed, VelErr_Observed, VelDisp_Observed, VelDispErr_Observed) = tmpInputArgs
-		PA = 90*np.pi/180
-		phi=(PA-np.pi/2.0) # accounting for the different 0 PA convention in astronomy to mathematics
+def lnlike(theta, Parameters, Data, PhotometricParameters, PhotometricParameterNames, SpitzerProfile):
 
-		SimulatedData, SimulatedUncertainties, ModelData = MockKinematicsModel(X, Y, Vel_Observed, VelErr_Observed, \
+	Parameters = np.array(Parameters)
+	PhotometricParameterNames = np.array(PhotometricParameterNames)
+
+	# now using the actual names of the parameters to extract the right values. 
+	if 'BulgeIntensity' in Parameters:
+		log_I_Bulge = np.array(theta)[np.where(Parameters == 'BulgeIntensity')] 
+	elif 'BulgeMagnitude' in PhotometricParameterNames:
+		log_I_Bulge = - np.array(PhotometricParameters)[np.where(PhotometricParameterNames == 'BulgeMagnitude')] / 2.5
+	else:
+		raise ValueError("Observed bulge magnitude not provided, and bulge intensity has not been set as a free parameter. ")
+
+
+	if 'BulgeSize' in Parameters:
+		Re_Bulge = np.array(theta)[np.where(Parameters == 'BulgeSize')] 
+	elif 'BulgeSize' in PhotometricParameterNames:
+		Re_Bulge = np.array(PhotometricParameters)[np.where(PhotometricParameterNames == 'BulgeSize')] 
+	else:
+		raise ValueError("Observed bulge Re not provided, and has not been set as a free parameter. ")
+
+
+	if 'BulgeSersicIndex' in Parameters:
+		n = np.array(theta)[np.where(Parameters == 'BulgeSersicIndex')] 
+	elif 'BulgeSersicIndex' in PhotometricParameterNames:
+		n = np.array(PhotometricParameters)[np.where(PhotometricParameterNames == 'BulgeSersicIndex')] 
+	else:
+		raise ValueError("Observed bulge sersic index not provided, and has not been set as a free parameter. ")
+
+	ellipticity_bulge = theta[np.where(Parameters == 'BulgeEllipticity')]
+
+	if 'BulgeVelocity' in Parameters:
+		BulgeRotationScale = np.array(theta)[np.where(Parameters == 'BulgeRotationScale')]
+		Max_vel_bulge = np.array(theta)[np.where(Parameters == 'BulgeVelocity')]
+	elif 'BulgeRotationScale' in Parameters:
+		raise ValueError("bulge rotation scale given, but not bulge rotational velocity. Check which values are included. ")
+	else:
+		BulgeRotationScale = 0
+		Max_vel_bulge = 0
+	Re_Bulge = np.array(theta)[np.where(Parameters == 'BulgeSize')]
+	CentralBulgeDispersion = np.array(theta)[np.where(Parameters == 'BulgeDispersion')]
+	alpha_Bulge = np.array(theta)[np.where(Parameters == 'BulgeDispersionDropOff')]
+	log_I_Disc = np.array(theta)[np.where(Parameters == 'DiscIntensity')]
+	Re_Disc = np.array(theta)[np.where(Parameters == 'DiscSize')]
+	DiscRotationScale = np.array(theta)[np.where(Parameters == 'DiscRotationScale')]
+	Max_vel_disc = np.array(theta)[np.where(Parameters == 'DiscVelocity')]
+
+	if 'DiscDispersion' in Parameters:
+		CentralDiscDispersion = np.array(theta)[np.where(Parameters == 'DiscDispersion')]
+		alpha_Disc = np.array(theta)[np.where(Parameters == 'DiscDispersionDropOff')]
+	elif 'DiscDispersionDropOff' in Parameters:
+		raise ValueError("Disc dispersion drop off value given, but not central disc dispersion. Check which values are included. ")
+	else:
+		# in this scenario, the disc dispersion has not been determined. 
+		# This means that we assume the full dispersion contribution comes from the bulge component of the galaxy. 
+		CentralDiscDispersion = 0
+		alpha_Disc = 0
+
+	AzimuthVariationParameterBulge = np.array(theta)[np.where(Parameters == 'BulgeAzimuthVariation')]
+	AzimuthVariationParameterDisc = np.array(theta)[np.where(Parameters == 'DiscAzimuthVariation')]
+
+
+
+	# now to check whether the user provided a disc ellipticity
+	if 'DiscEllipticity' in Parameters:
+		ellipticity_disc = np.array(theta)[np.where(Parameters == 'DiscEllipticity')]
+	elif 'ObservedEllipticity' in PhotometricParameterNames:
+		# in this case, we want to calculate what the disc ellipticity should be, given the bulge ellipticity, 
+		# to match the observed ellipticity. 
+		ObservedEllipticity = np.array(PhotometricParameters)[np.where(PhotometricParameterNames == 'ObservedEllipticity')]
+		EffectiveRadius = np.array(PhotometricParameters)[np.where(PhotometricParameterNames == 'ObservedEllipticity')]
+
+		BulgeIntensity_ellipticityTest = BulgeIntensityFunction(log_I_Bulge, EffectiveRadius, Re_Bulge, n)
+		DiscIntensity_ellipticityTest = DiscIntensityFunction(log_I_Disc, EffectiveRadius, Re_Disc)
+		
+		BulgeFraction_ellipticityTest = BulgeIntensity_ellipticityTest / (BulgeIntensity_ellipticityTest + DiscIntensity_ellipticityTest)
+		DiscFraction_ellipticityTest = DiscIntensity_ellipticityTest / (BulgeIntensity_ellipticityTest + DiscIntensity_ellipticityTest)
+		
+		ellipticity_disc = (ObservedEllipticity - BulgeFraction_ellipticityTest*ellipticity_bulge) / DiscFraction_ellipticityTest
+
+		if (ellipticity_disc > 1) | (ellipticity_disc < 0) | (np.isfinite(ellipticity_disc) == False):
+			return -np.inf # this setup is unphysical, therefore return a 0 likelihood. 
+	else:
+		raise ValueError("Observed ellipticity not provided, and disc ellipticity has not been set as a free parameter. ")
+
+
+	if len(SpitzerProfile) > 0:
+	
+		# the Spitzer luminosity profile has been provided, and hence we have an extra constraint of the model. 
+		# print PhotometricParameters
+		Spitzer_Radius = np.array(SpitzerProfile[0])
+		Spitzer_Mag = np.array(SpitzerProfile[1])
+		Spitzer_MagErr = np.array(SpitzerProfile[2])
+	
+		ModelMagProfile = -2.5*np.log10(BulgeIntensityFunction(log_I_Bulge, Spitzer_Radius, Re_Bulge, n) + \
+			DiscIntensityFunction(log_I_Disc, Spitzer_Radius, Re_Disc))
+		realChi2_lum = np.sum(np.log(2*np.pi*Spitzer_MagErr**2) + ((Spitzer_Mag - ModelMagProfile)/Spitzer_MagErr)**2.) 
+
+		photometricContraint = True
+
+	else:
+		photometricContraint = False  
+
+
+
+	# identifying whether or not to implement the hyperparameter regime. 
+	if len(Data) == 12: # at this point the user is fitting to two datasets, and hence we require the use of hyperparameters
+		if not 'SluggsWeight' in Parameters:
+			raise ValueError("Hyperparameters MUST be selected when fitting to two datasets.")
+		else:
+			sluggsWeight = np.array(theta)[np.where(Parameters == 'SluggsWeight')]
+			atlasWeight = np.array(theta)[np.where(Parameters == 'AtlasWeight')]
+			X, Y, Vel_Observed, VelErr_Observed, VelDisp_Observed, VelDispErr_Observed, \
+			X_2, Y_2, Vel_Observed_2, VelErr_Observed_2, VelDisp_Observed_2, VelDispErr_Observed_2 = Data
+			DatasetNumber = 2
+	elif len(Data) == 6:
+		X, Y, Vel_Observed, VelErr_Observed, VelDisp_Observed, VelDispErr_Observed = Data
+		DatasetNumber = 1
+	else:
+		raise ValueError("Unexpected input dataset configuration. \n For one dataset, 6 arrays expected, \
+			and for two datasets, 12. {0} provided.".format(len(Data)))
+
+
+	PA = 90*np.pi/180
+	phi=(PA-np.pi/2.0) # accounting for the different 0 PA convention in astronomy to mathematics
+			
+
+
+	if DatasetNumber == 1:
+
+		ObservedData, ObservedUncertainties, ModelData = MockKinematicsModel(X, Y, Vel_Observed, VelErr_Observed, \
 			VelDisp_Observed, VelDispErr_Observed, phi, ellipticity_bulge, ellipticity_disc, log_I_Bulge, Re_Bulge, n, log_I_Disc, Re_Disc, \
 			Max_vel_disc, DiscRotationScale, AzimuthVariationParameterDisc, Max_vel_bulge, BulgeRotationScale, AzimuthVariationParameterBulge, \
 			CentralBulgeDispersion, CentralDiscDispersion, alpha_Bulge, alpha_Disc)
-	
-		Chi2Total = np.sum(((SimulatedData - ModelData)/SimulatedUncertainties)**2.)
-	except:
-		Chi2Total = np.inf
-	return -Chi2Total/2
+		
+		realChi2_kin = np.sum(np.log(2*np.pi*ObservedUncertainties**2) + ((ObservedData - ModelData)/ObservedUncertainties)**2.)
 
-def lnprob_RotationAndDispersion_sims(theta, *args):
-	arg1 = args[0]
-	arg2 = args[1:]
-
-	lp = lnprior(theta, arg1)
-	if not np.isfinite(lp):
-	    return -np.inf
-	return lp + lnlike_RotationAndDispersion_sims(theta, arg2) #In logarithmic space, the multiplication becomes sum.
-
-def lnlike_RotationAndDispersion_sims_TwoDatasets(theta, *args):
-	try:
-		log_I_Bulge, Re_Bulge, ellipticity_bulge, n, BulgeRotationScale, Max_vel_bulge, CentralBulgeDispersion, alpha_Bulge, log_I_Disc, \
-		Re_Disc, ellipticity_disc, DiscRotationScale, Max_vel_disc, CentralDiscDispersion, alpha_Disc, AzimuthVariationParameterBulge, AzimuthVariationParameterDisc, \
-		sluggsWeight, atlasWeight = theta
-		tmpInputArgs = args[0]
-		(X, Y, Vel_Observed, VelErr_Observed, VelDisp_Observed, VelDispErr_Observed, \
-		    X_2, Y_2, Vel_Observed_2, VelErr_Observed_2, VelDisp_Observed_2, VelDispErr_Observed_2) = tmpInputArgs
-		PA = 90*np.pi/180
-		phi=(PA-np.pi/2.0) # accounting for the different 0 PA convention in astronomy to mathematics
-
-		# print 'test 1'
-	
-		Data, DataUncertainties, ModelData = MockKinematicsModel(X, Y, Vel_Observed, VelErr_Observed, \
+	elif DatasetNumber == 2:
+		ObservedData_sluggs, ObservedUncertainties_sluggs, ModelData_sluggs = MockKinematicsModel(X, Y, Vel_Observed, VelErr_Observed, \
 			VelDisp_Observed, VelDispErr_Observed, phi, ellipticity_bulge, ellipticity_disc, log_I_Bulge, Re_Bulge, n, log_I_Disc, Re_Disc, \
 			Max_vel_disc, DiscRotationScale, AzimuthVariationParameterDisc, Max_vel_bulge, BulgeRotationScale, AzimuthVariationParameterBulge, \
 			CentralBulgeDispersion, CentralDiscDispersion, alpha_Bulge, alpha_Disc)
-
-		Data_2, DataUncertainties_2, ModelData_2 = MockKinematicsModel(X_2, Y_2, Vel_Observed_2, VelErr_Observed_2, \
+		
+		realChi2_sluggs = np.sum(np.log(2*np.pi*ObservedUncertainties_sluggs**2/sluggsWeight) + (sluggsWeight*(ObservedData_sluggs - ModelData_sluggs)/ObservedUncertainties_sluggs)**2.)
+		
+		ObservedData_atlas, ObservedUncertainties_atlas, ModelData_atlas = MockKinematicsModel(X_2, Y_2, Vel_Observed_2, VelErr_Observed_2, \
 			VelDisp_Observed_2, VelDispErr_Observed_2, phi, ellipticity_bulge, ellipticity_disc, log_I_Bulge, Re_Bulge, n, log_I_Disc, Re_Disc, \
 			Max_vel_disc, DiscRotationScale, AzimuthVariationParameterDisc, Max_vel_bulge, BulgeRotationScale, AzimuthVariationParameterBulge, \
 			CentralBulgeDispersion, CentralDiscDispersion, alpha_Bulge, alpha_Disc)
-	
-		realChi2_sluggs = np.sum(np.log(2*np.pi*DataUncertainties**2/sluggsWeight) + (sluggsWeight*(Data - ModelData)/DataUncertainties)**2.)
 		
-		realChi2_atlas = np.sum(np.log(2*np.pi*DataUncertainties_2**2/atlasWeight) + (atlasWeight*(Data_2 - ModelData_2)/DataUncertainties_2)**2.)
+		realChi2_atlas = np.sum(np.log(2*np.pi*ObservedUncertainties_atlas**2/atlasWeight) + (atlasWeight*(ObservedData_atlas - ModelData_atlas)/ObservedUncertainties_atlas)**2.)
 			
-		Chi2Total = realChi2_sluggs + realChi2_atlas # now each of the datasets is appropriately weighted, and it is the likelihoods themselves that are being multiplied
-			
-	except:
-		Chi2Total = np.inf
+		realChi2_kin = 	realChi2_sluggs + realChi2_atlas
+
+	if photometricContraint:	
+		Chi2Total = realChi2_kin + realChi2_lum # now each of the datasets is appropriately weighted, and it is the likelihoods themselves that are being multiplied		
+	else:
+		Chi2Total = realChi2_kin
+
 	return -Chi2Total/2
 
-def lnprob_RotationAndDispersion_sims_TwoDatasets(theta, *args):
-	arg1 = args[0]
-	arg2 = args[1:]
+def InitialWalkerPosition(WalkerNumber, LowerBounds, UpperBounds, PriorType):
+	# wiriting up a code that, for an arbitrary number of parameters and prior bounds, will set up the initial walker positions. 
 
-	lp = lnprior(theta, arg1)
-	if not np.isfinite(lp):
-	    return -np.inf
-	return lp + lnlike_RotationAndDispersion_sims_TwoDatasets(theta, arg2) #In logarithmic space, the multiplication becomes sum.
+	InitialPosition = []
+	for ii in np.arange(WalkerNumber): 
+		WalkerPosition = [] 
+		for jj in range(len(LowerBounds)):
+			if PriorType[jj] == 'uniform':
+				WalkerPosition.append(np.random.uniform(low=LowerBounds[jj], high=UpperBounds[jj]) )
+			elif PriorType[jj] == 'exponential':
+				ExpInitPosition = np.random.uniform(low=np.exp(-UpperBounds[jj]), high=np.exp(LowerBounds[jj])) 
+				WalkerPosition.append(-np.log(ExpInitPosition))
+	
+		InitialPosition.append(WalkerPosition)
+
+	Boundaries = []
+	for ii in range(len(LowerBounds)):
+		Boundaries.append(LowerBounds[ii])
+		Boundaries.append(UpperBounds[ii])
+
+	return InitialPosition, Boundaries
 
 
-def KinematicProducer_mainCall(pathName, MagneticumPathName, GalName, ExistingPhotometry = True, TwoDatasets = True, KrigingInput = True, Magneticum = False):
-	# instead of sampling a given range, I now sample the same pixels as given for an observed galaxy. 
-	# ObservedGalaxyInput_Path = os.path.abspath(pathName)
-	import pickle
+def mainCall_modular(pathName, MagneticumPathName, GalName, \
+	Photometry = False, KrigingInput = True, Magneticum = False, TwoDatasets = True, \
+	BulgeIntensity = True, BulgeSize = True, BulgeEllipticity = True, BulgeSersicIndex = True, \
+	BulgeRotationScale = True, BulgeVelocity = True, BulgeDispersion = True, BulgeDispersionDropOff = True, \
+	DiscIntensity = True, DiscSize = True, DiscEllipticity = True, DiscRotationScale = True, DiscVelocity = True, \
+	DiscDispersion = True, DiscDispersionDropOff = True, BulgeAzimuthVariation = True, DiscAzimuthVariation = True, \
+	SluggsWeight = True, AtlasWeight = True, \
+	nwalkers = 2000, burnSteps = 1000, stepNumber = 4000):
 
 	if KrigingInput:
 		X, Y, Vel_Observed, VelErr_Observed, VelDisp_Observed, VelDispErr_Observed = krigingFileReadAll(pathName, GalName)
@@ -600,297 +402,222 @@ def KinematicProducer_mainCall(pathName, MagneticumPathName, GalName, ExistingPh
 	if TwoDatasets:
 		InputDataFilename = pathName+str(GalName)+'/MockKinematics_Input_'+str(GalName)+'_ATLAS3D.txt'
 		X_2, Y_2, Vel_Observed_2, VelErr_Observed_2, VelDisp_Observed_2, VelDispErr_Observed_2 = np.loadtxt(InputDataFilename, unpack = True, comments = '#')
+		Data = [X, Y, Vel_Observed, VelErr_Observed, VelDisp_Observed, VelDispErr_Observed, X_2, Y_2, Vel_Observed_2, VelErr_Observed_2, VelDisp_Observed_2, VelDispErr_Observed_2]
+	else:
+		Data = [X, Y, Vel_Observed, VelErr_Observed, VelDisp_Observed, VelDispErr_Observed]
+
+
 	import time
 	t0 = time.time() # record the time to output how long the total run took. 
 
+	ndim = 0
+	LowerBounds, UpperBounds, PriorType, ParameterNames, ParamSymbol = [], [], [], [], []
+	# selecting all possible free parameters, with their prior bounds:
+	if BulgeIntensity: # log bulge I
+		ndim += 1
+		LowerBounds.append(-3)
+		UpperBounds.append(7)
+		PriorType.append('uniform')
+		ParameterNames.append('BulgeIntensity')
+		ParamSymbol.append(r"$\log(I_b)$")
+	if BulgeSize:
+		ndim += 1
+		LowerBounds.append(0)
+		UpperBounds.append(100)
+		PriorType.append('uniform')
+		ParameterNames.append('BulgeSize')
+		ParamSymbol.append(r"$R_{e,b}$")
+	if BulgeEllipticity:
+		ndim += 1
+		LowerBounds.append(0.0) # we want this to be fairly round...
+		UpperBounds.append(0.6)
+		PriorType.append('uniform')
+		ParameterNames.append('BulgeEllipticity')
+		ParamSymbol.append(r"$\epsilon_b$")
+	if BulgeSersicIndex:
+		ndim += 1
+		LowerBounds.append(1)
+		UpperBounds.append(8)
+		PriorType.append('uniform')
+		ParameterNames.append('BulgeSersicIndex')
+		ParamSymbol.append(r'n')
+	if BulgeRotationScale:
+		ndim += 1
+		LowerBounds.append(1)
+		UpperBounds.append(50)
+		PriorType.append('uniform')
+		ParameterNames.append('BulgeRotationScale')
+		ParamSymbol.append(r"$s_b$")
+	if BulgeVelocity:
+		ndim += 1
+		LowerBounds.append(-100)# don't expect the bulge component to be rotating
+		UpperBounds.append(100)
+		PriorType.append('uniform')
+		ParameterNames.append('BulgeVelocity')
+		ParamSymbol.append(r"$v_b$")
+	if BulgeDispersion:
+		ndim += 1
+		LowerBounds.append(0)
+		UpperBounds.append(300)
+		PriorType.append('uniform')
+		ParameterNames.append('BulgeDispersion')
+		ParamSymbol.append(r"$\sigma_{c,b}$")
+	if BulgeDispersionDropOff:
+		ndim += 1
+		LowerBounds.append(0)
+		UpperBounds.append(0.2)
+		PriorType.append('uniform')
+		ParameterNames.append('BulgeDispersionDropOff')
+		ParamSymbol.append(r"$\alpha_b$")
+		
+	if DiscIntensity: # log disc I
+		ndim += 1
+		LowerBounds.append(-8)
+		UpperBounds.append(2)
+		PriorType.append('uniform')
+		ParameterNames.append('DiscIntensity')
+		ParamSymbol.append(r"$\log(I_d)$")
+	if DiscSize:
+		ndim += 1
+		LowerBounds.append(0)
+		UpperBounds.append(100)
+		PriorType.append('uniform')
+		ParameterNames.append('DiscSize')
+		ParamSymbol.append(r"$R_{e,d}$")
+	if DiscEllipticity:
+		ndim += 1		 	 			# the only reason why this would be round, is because a disc is fairly inclined. 
+		LowerBounds.append(0.5)  		# it might therefore be worth thinking about whether this value and the maximum
+		UpperBounds.append(0.95)  		# rotational velocity should be linked, such that if the disc is very round, then 
+		PriorType.append('uniform') 	# one won't see it rotating...
+		ParameterNames.append('DiscEllipticity')
+		ParamSymbol.append(r"$\epsilon_d$")
+	if DiscRotationScale:
+		ndim += 1
+		LowerBounds.append(1)
+		UpperBounds.append(50)
+		PriorType.append('uniform')
+		ParameterNames.append('DiscRotationScale')
+		ParamSymbol.append(r"$s_d$")
+	if DiscVelocity:
+		ndim += 1
+		LowerBounds.append(-400)
+		UpperBounds.append(400)
+		PriorType.append('uniform')
+		ParameterNames.append('DiscVelocity')
+		ParamSymbol.append(r"$v_d$")
+	if DiscDispersion:
+		ndim += 1
+		LowerBounds.append(0)
+		UpperBounds.append(300)
+		PriorType.append('uniform')
+		ParameterNames.append('DiscDispersion')
+		ParamSymbol.append(r"$\sigma_{c,d}$")
+	if DiscDispersionDropOff:
+		ndim += 1
+		LowerBounds.append(0)
+		UpperBounds.append(0.5)
+		PriorType.append('uniform')
+		ParameterNames.append('DiscDispersionDropOff')
+		ParamSymbol.append(r"$\alpha_d$")
+	if BulgeAzimuthVariation:
+		ndim += 1
+		LowerBounds.append(-1.0)
+		UpperBounds.append(1.0)
+		PriorType.append('uniform')
+		ParameterNames.append('BulgeAzimuthVariation')
+		ParamSymbol.append(r"$\theta_{\rm b}$")
+	if DiscAzimuthVariation:
+		ndim += 1
+		LowerBounds.append(-1.0)
+		UpperBounds.append(1.0)
+		PriorType.append('uniform')
+		ParameterNames.append('DiscAzimuthVariation')
+		ParamSymbol.append(r"$\theta_{\rm d}$")
+	
+	if SluggsWeight:
+		ndim += 1
+		LowerBounds.append(0)
+		UpperBounds.append(10)
+		PriorType.append('exponential')
+		ParameterNames.append('SluggsWeight')
+		ParamSymbol.append(r"$\omega_{\rm SLUGGS}$")
+	if AtlasWeight:
+		ndim += 1
+		LowerBounds.append(0)
+		UpperBounds.append(10)
+		PriorType.append('exponential')
+		ParameterNames.append('AtlasWeight')
+		ParamSymbol.append(r"$\omega_{\rm ATLAS}$")
+	# making a selection of which free parameters are required, in order to select the walker initial positions and define prior boundaries
+	pos, boundaries = InitialWalkerPosition(nwalkers, LowerBounds, UpperBounds, PriorType)
 
-	if ExistingPhotometry:
-	
-		if TwoDatasets:
-			ndim, nwalkers = 15, 1000 # NUMBER OF WALKERS
-									  # if both datasets are being used, then two hyperparameters are required, which increases
-									  # the number of free parameters. 
-		else:
-			ndim, nwalkers = 13, 1000 # NUMBER OF WALKERS
-		
-		
-		# setting the upper and lower bounds on the prior ranges of each parameter
-		ellipticity_bulge_lower, ellipticity_bulge_upper = 0.0, 0.6 # we want this to be fairly round...
-		BulgeRotationScale_lower, BulgeRotationScale_upper = 1, 50
-		Max_vel_bulge_lower, Max_vel_bulge_upper = -100, 100 # don't expect the bulge component to be rotating
-		CentralBulgeDispersion_lower, CentralBulgeDispersion_upper = 0, 300 # dispersion at R_e/2
-		alpha_Bulge_lower, alpha_Bulge_upper = 0, 0.2 # power law slope
-		
-		
-		log_I_Disc_lower, log_I_Disc_upper = np.log10(1e-8), np.log10(1e2)
-		Re_Disc_lower, Re_Disc_upper = 0, 100
-		DiscRotationScale_lower, DiscRotationScale_upper = 1, 50
-		Max_vel_disc_lower, Max_vel_disc_upper = -400, 400
-		CentralDiscDispersion_lower, CentralDiscDispersion_upper = 0, 300 # dispersion at R_e/2
-		alpha_Disc_lower, alpha_Disc_upper = 0, 0.5 # power law slope
-		
-		AzimuthVariationParameterBulge_lower, AzimuthVariationParameterBulge_upper = -1.0, 1.0
-		AzimuthVariationParameterDisc_lower, AzimuthVariationParameterDisc_upper = -1.0, 1.0
-	
-		if TwoDatasets:
-			# need to define the two hyperparameters for each dataset
-			sluggsWeight_lower, sluggsWeight_upper = 0, 10
-			atlasWeight_lower, atlasWeight_upper = 0, 10
-			sluggsWeightPrior_lower, sluggsWeightPrior_upper = np.exp(-sluggsWeight_upper), np.exp(sluggsWeight_lower)
-			atlasWeightPrior_lower, atlasWeightPrior_upper = np.exp(-atlasWeight_upper), np.exp(atlasWeight_lower)
-		
-		
-		# defining the initial position of the walkers
-		pos_RotationAndDispersion = []
-		for ii in np.arange(nwalkers):  
-			ellipticity_bulge_init = np.random.uniform(low=ellipticity_bulge_lower, high=ellipticity_bulge_upper) 
-			BulgeRotationScale_init = np.random.uniform(low=BulgeRotationScale_lower, high=BulgeRotationScale_upper) 
-			Max_vel_bulge_init = np.random.uniform(low=Max_vel_bulge_lower, high=Max_vel_bulge_upper) 
-			CentralBulgeDispersion_init = np.random.uniform(low=CentralBulgeDispersion_lower, high=CentralBulgeDispersion_upper) 
-			alpha_Bulge_init = np.random.uniform(low=alpha_Bulge_lower, high=alpha_Bulge_upper) 
-		
-			log_I_Disc_init = np.random.uniform(low=log_I_Disc_lower, high=log_I_Disc_upper) # sample in log space
-			Re_Disc_init = np.random.uniform(low=Re_Disc_lower, high=Re_Disc_upper) 
-			DiscRotationScale_init = np.random.uniform(low=DiscRotationScale_lower, high=DiscRotationScale_upper) 
-			Max_vel_disc_init = np.random.uniform(low=Max_vel_disc_lower, high=Max_vel_disc_upper) 
-			CentralDiscDispersion_init = np.random.uniform(low=CentralDiscDispersion_lower, high=CentralDiscDispersion_upper) 
-			alpha_Disc_init = np.random.uniform(low=alpha_Disc_lower, high=alpha_Disc_upper) 
-		
-			AzimuthVariationParameterBulge_init = np.random.uniform(low=AzimuthVariationParameterBulge_lower, high=AzimuthVariationParameterBulge_upper) 
-			AzimuthVariationParameterDisc_init = np.random.uniform(low=AzimuthVariationParameterDisc_lower, high=AzimuthVariationParameterDisc_upper) 
-	
-			if TwoDatasets:
-				sluggsWeightPrior = (np.random.uniform(low=sluggsWeightPrior_lower, high=sluggsWeightPrior_upper))   # uniform sampling in expoential space
-				atlasWeightPrior = (np.random.uniform(low=atlasWeightPrior_lower, high=atlasWeightPrior_upper)) # uniform sampling in exponential space  
-				sluggsWeight = -np.log(sluggsWeightPrior)
-				atlasWeight = -np.log(atlasWeightPrior)
-	
-				pos_RotationAndDispersion.append([ellipticity_bulge_init, \
-					BulgeRotationScale_init, \
-					Max_vel_bulge_init, CentralBulgeDispersion_init, alpha_Bulge_init,  \
-					log_I_Disc_init, Re_Disc_init, DiscRotationScale_init, Max_vel_disc_init, CentralDiscDispersion_init, \
-					alpha_Disc_init, AzimuthVariationParameterBulge_init, AzimuthVariationParameterDisc_init, \
-					sluggsWeight, atlasWeight])
-		
-			else:
-				pos_RotationAndDispersion.append([ellipticity_bulge_init, \
-					BulgeRotationScale_init, \
-					Max_vel_bulge_init, CentralBulgeDispersion_init, alpha_Bulge_init,  \
-					log_I_Disc_init, Re_Disc_init, DiscRotationScale_init, Max_vel_disc_init, CentralDiscDispersion_init, \
-					alpha_Disc_init, AzimuthVariationParameterBulge_init, AzimuthVariationParameterDisc_init])
-		
-		# print pos_RotationAndDispersion
-		if TwoDatasets:
-			boundaries = [ellipticity_bulge_lower, ellipticity_bulge_upper, \
-				BulgeRotationScale_lower, BulgeRotationScale_upper, Max_vel_bulge_lower, Max_vel_bulge_upper, \
-				CentralBulgeDispersion_lower, CentralBulgeDispersion_upper, alpha_Bulge_lower, alpha_Bulge_upper, \
-				log_I_Disc_lower, log_I_Disc_upper, Re_Disc_lower, Re_Disc_upper, DiscRotationScale_lower, DiscRotationScale_upper, \
-				Max_vel_disc_lower, Max_vel_disc_upper, CentralDiscDispersion_lower, CentralDiscDispersion_upper, \
-				alpha_Disc_lower, alpha_Disc_upper, \
-				AzimuthVariationParameterBulge_lower, AzimuthVariationParameterBulge_upper, AzimuthVariationParameterDisc_lower, AzimuthVariationParameterDisc_upper, \
-				sluggsWeight_lower, sluggsWeight_upper, atlasWeight_lower, atlasWeight_upper]
-		else:
-			boundaries = [ellipticity_bulge_lower, ellipticity_bulge_upper, \
-				BulgeRotationScale_lower, BulgeRotationScale_upper, Max_vel_bulge_lower, Max_vel_bulge_upper, \
-				CentralBulgeDispersion_lower, CentralBulgeDispersion_upper, alpha_Bulge_lower, alpha_Bulge_upper, \
-				log_I_Disc_lower, log_I_Disc_upper, Re_Disc_lower, Re_Disc_upper, DiscRotationScale_lower, DiscRotationScale_upper, \
-				Max_vel_disc_lower, Max_vel_disc_upper, CentralDiscDispersion_lower, CentralDiscDispersion_upper, \
-				alpha_Disc_lower, alpha_Disc_upper, \
-				AzimuthVariationParameterBulge_lower, AzimuthVariationParameterBulge_upper, AzimuthVariationParameterDisc_lower, AzimuthVariationParameterDisc_upper]
-		
+
+	if Photometry:
+
 		EffectiveRadius = Reff_Spitzer[GalName]
 		ObservedEllipticity = 1 - b_a[GalName]
 		n_bulge = SersicIndex_Bulge[GalName]
 		Re_Bulge = EffectiveRadius_Bulge[GalName]
 		mag_Bulge = MagnitudeRe_Bulge[GalName]
 		Spitzer_Radius, Spitzer_Mag, Spitzer_MagErr = SpitzerMagProfileFinder(GalName, 'SpitzerProfiles/') # I haven't yet done a thorough check on the impact of using a Spitzer lumiosity
-																					   # profile, but using an optical magnitude for a previous photometric decomposition. 
-																					   # My assumption here is that the impact is negligible. 
-		
-		# Setup MCMC sampler
-		import emcee
-		if TwoDatasets:
-			sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob_RotationAndDispersion_hyperparameters,
-			                  args=(boundaries, X, Y, Vel_Observed, VelErr_Observed, VelDisp_Observed, VelDispErr_Observed, \
-			                  	X_2, Y_2, Vel_Observed_2, VelErr_Observed_2, VelDisp_Observed_2, VelDispErr_Observed_2, \
-			                  	EffectiveRadius, ObservedEllipticity, n_bulge, Re_Bulge, mag_Bulge, Spitzer_Radius, Spitzer_Mag, Spitzer_MagErr),
-			                  threads=16) #Threads gives the number of processors to use
-		else:
-			sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob_RotationAndDispersion,
-			                  args=(boundaries, X, Y, Vel_Observed, VelErr_Observed, VelDisp_Observed, VelDispErr_Observed, \
-			                  	EffectiveRadius, ObservedEllipticity, n_bulge, Re_Bulge, mag_Bulge, Spitzer_Radius, Spitzer_Mag, Spitzer_MagErr),
-			                  threads=16) #Threads gives the number of processors to use
-		
-		############ implementing a burn-in period ###########
-		burnSteps = 1000
-		pos, prob, state = sampler.run_mcmc(pos_RotationAndDispersion, burnSteps)
-		sampler.reset()
-		
-		stepNumber = 4000
-		outputMCMC = sampler.run_mcmc(pos, stepNumber) # uses the final position of the burn-in period as the starting point. 
-		######################################################
-		
-		
-		t = time.time() - t0
-		Date=time.strftime('%Y-%m-%d')
-		Time = time.asctime().split()[3]
-		print '########################################'
-		if float(t)/3600 < 1:
-			print 'time elapsed:', float(t)/60, 'minutes'
-		else:
-			print 'time elapsed:', float(t)/3600, 'hours'
-		print '########################################'
-		print 'Mean acceptance fraction: ', (np.mean(sampler.acceptance_fraction))
-		if TwoDatasets:
-			OutputFilename = pathName+str(GalName)+'/'+str(GalName)+'_MCMCOutput_TwoDatasets.dat'
-		else:
-			OutputFilename = pathName+str(GalName)+'/'+str(GalName)+'_MCMCOutput.dat'
-		print 'output filename: ', OutputFilename
-		
-		fileOut = open(OutputFilename, 'wb')
-		pickle.dump([sampler.chain, sampler.flatchain, sampler.lnprobability, sampler.flatlnprobability], fileOut)
-		fileOut.close()
+																						   # profile, but using an optical magnitude for a previous photometric decomposition. 
+																						   # My assumption here is that the impact is negligible. 
+		PhotometricParameters = [EffectiveRadius, ObservedEllipticity, n_bulge, Re_Bulge, mag_Bulge]
 	
-	# here implement an entirely independent version of the code for the purpose of fitting to simulated data. 
+		PhotometricParameterNames = ['EffectiveRadius', 'ObservedEllipticity', 'BulgeSersicIndex', 'BulgeSize', 'BulgeMagnitude']
+
+		SpitzerProfile = [Spitzer_Radius, Spitzer_Mag, Spitzer_MagErr]
+
 	else:
-		if TwoDatasets:
-			ndim, nwalkers = 19, 2000 # NUMBER OF WALKERS
-		else:
-			ndim, nwalkers = 17, 2000 # NUMBER OF WALKERS
-		
-		
-		# setting the upper and lower bounds on the prior ranges of each parameter
-		log_I_bulge_lower, log_I_bulge_upper = np.log10(1e-3), np.log10(1e7)
-		Re_bulge_lower, Re_bulge_upper = 0, 100
-		ellipticity_bulge_lower, ellipticity_bulge_upper = 0.0, 0.6 # we want this to be fairly round...
-		n_lower, n_upper = 1, 8
-		BulgeRotationScale_lower, BulgeRotationScale_upper = 1, 50
-		Max_vel_bulge_lower, Max_vel_bulge_upper = -100, 100 # don't expect the bulge component to be rotating
-		CentralBulgeDispersion_lower, CentralBulgeDispersion_upper = 0, 300 # dispersion at R_e/2
-		alpha_Bulge_lower, alpha_Bulge_upper = 0, 0.2 # power law slope
-		
-		
-		log_I_Disc_lower, log_I_Disc_upper = np.log10(1e-8), np.log10(1e2)
-		Re_Disc_lower, Re_Disc_upper = 0, 100
-		ellipticity_disc_lower, ellipticity_disc_upper = 0.0, 1.0 
-		DiscRotationScale_lower, DiscRotationScale_upper = 1, 50
-		Max_vel_disc_lower, Max_vel_disc_upper = -400, 400
-		CentralDiscDispersion_lower, CentralDiscDispersion_upper = 0, 300 # dispersion at R_e/2
-		alpha_Disc_lower, alpha_Disc_upper = 0, 0.5 # power law slope
-		
-		AzimuthVariationParameterBulge_lower, AzimuthVariationParameterBulge_upper = -1.0, 1.0
-		AzimuthVariationParameterDisc_lower, AzimuthVariationParameterDisc_upper = -1.0, 1.0
+		# just include empty arrays for each of the photometric arrays. 
+		# empty arrays will trigger the relevant sections in the lnprob functions to indicate that photometry is not required. 
+		PhotometricParameters = []
+		PhotometricParameterNames = []
+		SpitzerProfile = []
+
+	import emcee
+	sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob,
+		  args=(boundaries, ParameterNames, Data, PhotometricParameters, PhotometricParameterNames, SpitzerProfile), 
+		  threads=16) #Threads gives the number of processors to use
+
+	############ implementing a burn-in period ###########
+	pos_postBurn, prob, state = sampler.run_mcmc(pos, burnSteps)
+	sampler.reset()
 	
-		if TwoDatasets:
-			# need to define the two hyperparameters for each dataset
-			sluggsWeight_lower, sluggsWeight_upper = 0, 10
-			atlasWeight_lower, atlasWeight_upper = 0, 10
-			sluggsWeightPrior_lower, sluggsWeightPrior_upper = np.exp(-sluggsWeight_upper), np.exp(sluggsWeight_lower)
-			atlasWeightPrior_lower, atlasWeightPrior_upper = np.exp(-atlasWeight_upper), np.exp(atlasWeight_lower)
-		
-		
-		# defining the initial position of the walkers
-		pos_RotationAndDispersion = []
-		for ii in np.arange(nwalkers): 
-			log_I_bulge_init = np.random.uniform(low=log_I_bulge_lower, high=log_I_bulge_upper)
-			Re_bulge_init =  np.random.uniform(low=Re_bulge_lower, high=Re_bulge_upper)
-			ellipticity_bulge_init = np.random.uniform(low=ellipticity_bulge_lower, high=ellipticity_bulge_upper) 
-			n_init = np.random.uniform(low=n_lower, high=n_upper) 
-			BulgeRotationScale_init = np.random.uniform(low=BulgeRotationScale_lower, high=BulgeRotationScale_upper) 
-			Max_vel_bulge_init = np.random.uniform(low=Max_vel_bulge_lower, high=Max_vel_bulge_upper) 
-			CentralBulgeDispersion_init = np.random.uniform(low=CentralBulgeDispersion_lower, high=CentralBulgeDispersion_upper) 
-			alpha_Bulge_init = np.random.uniform(low=alpha_Bulge_lower, high=alpha_Bulge_upper) 
-		
-			log_I_Disc_init = np.random.uniform(low=log_I_Disc_lower, high=log_I_Disc_upper) # sample in log space
-			Re_Disc_init = np.random.uniform(low=Re_Disc_lower, high=Re_Disc_upper) 
-			ellipticity_disc_init = np.random.uniform(low=ellipticity_disc_lower, high=ellipticity_disc_upper) 
-			DiscRotationScale_init = np.random.uniform(low=DiscRotationScale_lower, high=DiscRotationScale_upper) 
-			Max_vel_disc_init = np.random.uniform(low=Max_vel_disc_lower, high=Max_vel_disc_upper) 
-			CentralDiscDispersion_init = np.random.uniform(low=CentralDiscDispersion_lower, high=CentralDiscDispersion_upper) 
-			alpha_Disc_init = np.random.uniform(low=alpha_Disc_lower, high=alpha_Disc_upper) 
-		
-			AzimuthVariationParameterBulge_init = np.random.uniform(low=AzimuthVariationParameterBulge_lower, high=AzimuthVariationParameterBulge_upper) 
-			AzimuthVariationParameterDisc_init = np.random.uniform(low=AzimuthVariationParameterDisc_lower, high=AzimuthVariationParameterDisc_upper) 
-		
-			if TwoDatasets:
-				sluggsWeightPrior = (np.random.uniform(low=sluggsWeightPrior_lower, high=sluggsWeightPrior_upper))   # uniform sampling in expoential space
-				atlasWeightPrior = (np.random.uniform(low=atlasWeightPrior_lower, high=atlasWeightPrior_upper)) # uniform sampling in exponential space  
-				sluggsWeight = -np.log(sluggsWeightPrior)
-				atlasWeight = -np.log(atlasWeightPrior)
+	outputMCMC = sampler.run_mcmc(pos_postBurn, stepNumber) # uses the final position of the burn-in period as the starting point. 
+	######################################################
+
+
+	t = time.time() - t0
+	print '########################################'
+	if float(t)/3600 < 1:
+		print 'time elapsed:', float(t)/60, 'minutes'
+	else:
+		print 'time elapsed:', float(t)/3600, 'hours'
+	print '########################################'
+	print 'Mean acceptance fraction: ', (np.mean(sampler.acceptance_fraction))
+	suffix = ''
+	if TwoDatasets:
+		suffix = suffix + 'TwoDatasets_'
+	if Photometry:
+		suffix = suffix + 'Photometry_'
+	if Magneticum:
+		suffix = suffix + 'Magneticum_'
+	suffix = suffix + 'FreeParam-'+str(ndim)
+
+	if not os.path.exists(pathName+str(GalName)+'/'+suffix): 
+		os.mkdir(pathName+str(GalName)+'/'+suffix)
+
+	OutputFilename = pathName+str(GalName)+'/'+suffix+'/'+str(GalName)+'_MCMCOutput_'+suffix+'.dat'
+	print 'output filename: ', OutputFilename
 	
-				pos_RotationAndDispersion.append([log_I_bulge_init, Re_bulge_init, ellipticity_bulge_init, n_init, \
-					BulgeRotationScale_init, \
-					Max_vel_bulge_init, CentralBulgeDispersion_init, alpha_Bulge_init,  \
-					log_I_Disc_init, Re_Disc_init, ellipticity_disc_init, DiscRotationScale_init, Max_vel_disc_init, CentralDiscDispersion_init, \
-					alpha_Disc_init, AzimuthVariationParameterBulge_init, AzimuthVariationParameterDisc_init, \
-					sluggsWeight, atlasWeight])
-		
-			else:
-				pos_RotationAndDispersion.append([log_I_bulge_init, Re_bulge_init, ellipticity_bulge_init, n_init, \
-					BulgeRotationScale_init, \
-					Max_vel_bulge_init, CentralBulgeDispersion_init, alpha_Bulge_init,  \
-					log_I_Disc_init, Re_Disc_init, ellipticity_disc_init, DiscRotationScale_init, Max_vel_disc_init, CentralDiscDispersion_init, \
-					alpha_Disc_init, AzimuthVariationParameterBulge_init, AzimuthVariationParameterDisc_init])
-		
-		# print pos_RotationAndDispersion
-		if TwoDatasets:
-			boundaries = [log_I_bulge_lower, log_I_bulge_upper, Re_bulge_lower, Re_bulge_upper, ellipticity_bulge_lower, ellipticity_bulge_upper, \
-				n_lower, n_upper, BulgeRotationScale_lower, BulgeRotationScale_upper, Max_vel_bulge_lower, Max_vel_bulge_upper, \
-				CentralBulgeDispersion_lower, CentralBulgeDispersion_upper, alpha_Bulge_lower, alpha_Bulge_upper, \
-				log_I_Disc_lower, log_I_Disc_upper, Re_Disc_lower, Re_Disc_upper, ellipticity_disc_lower, ellipticity_disc_upper, \
-				DiscRotationScale_lower, DiscRotationScale_upper, \
-				Max_vel_disc_lower, Max_vel_disc_upper, CentralDiscDispersion_lower, CentralDiscDispersion_upper, \
-				alpha_Disc_lower, alpha_Disc_upper, \
-				AzimuthVariationParameterBulge_lower, AzimuthVariationParameterBulge_upper, AzimuthVariationParameterDisc_lower, AzimuthVariationParameterDisc_upper, \
-				sluggsWeight_lower, sluggsWeight_upper, atlasWeight_lower, atlasWeight_upper]
-		else:
-			boundaries = [log_I_bulge_lower, log_I_bulge_upper, Re_bulge_lower, Re_bulge_upper, ellipticity_bulge_lower, ellipticity_bulge_upper, \
-				n_lower, n_upper, BulgeRotationScale_lower, BulgeRotationScale_upper, Max_vel_bulge_lower, Max_vel_bulge_upper, \
-				CentralBulgeDispersion_lower, CentralBulgeDispersion_upper, alpha_Bulge_lower, alpha_Bulge_upper, \
-				log_I_Disc_lower, log_I_Disc_upper, Re_Disc_lower, Re_Disc_upper, ellipticity_disc_lower, ellipticity_disc_upper, \
-				DiscRotationScale_lower, DiscRotationScale_upper, \
-				Max_vel_disc_lower, Max_vel_disc_upper, CentralDiscDispersion_lower, CentralDiscDispersion_upper, \
-				alpha_Disc_lower, alpha_Disc_upper, \
-				AzimuthVariationParameterBulge_lower, AzimuthVariationParameterBulge_upper, AzimuthVariationParameterDisc_lower, AzimuthVariationParameterDisc_upper]
-		
-		# Setup MCMC sampler
-		import emcee
-		if TwoDatasets:
-			sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob_RotationAndDispersion_sims_TwoDatasets,
-			                  args=(boundaries, X, Y, Vel_Observed, VelErr_Observed, VelDisp_Observed, VelDispErr_Observed, \
-			                  	X_2, Y_2, Vel_Observed_2, VelErr_Observed_2, VelDisp_Observed_2, VelDispErr_Observed_2),
-			                  threads=16) #Threads gives the number of processors to use
-		else:
-			sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob_RotationAndDispersion_sims,
-			                  args=(boundaries, X, Y, Vel_Observed, VelErr_Observed, VelDisp_Observed, VelDispErr_Observed),
-			                  threads=16) #Threads gives the number of processors to use
-		
-		############ implementing a burn-in period ###########
-		burnSteps = 4000
-		pos, prob, state = sampler.run_mcmc(pos_RotationAndDispersion, burnSteps)
-		sampler.reset()
-		
-		stepNumber = 2000
-		outputMCMC = sampler.run_mcmc(pos, stepNumber) # uses the final position of the burn-in period as the starting point. 
-		######################################################
-		
-		
-		t = time.time() - t0
-		Date=time.strftime('%Y-%m-%d')
-		Time = time.asctime().split()[3]
-		print '########################################'
-		if float(t)/3600 < 1:
-			print 'time elapsed:', float(t)/60, 'minutes'
-		else:
-			print 'time elapsed:', float(t)/3600, 'hours'
-		print '########################################'
-		print 'Mean acceptance fraction: ', (np.mean(sampler.acceptance_fraction))
-		if TwoDatasets:
-			OutputFilename = pathName+str(GalName)+'/'+str(GalName)+'_MCMCOutput_simsversion_TwoDatasets.dat'
-		else:
-			OutputFilename = pathName+str(GalName)+'/'+str(GalName)+'_MCMCOutput_simsversion.dat'
-		print 'output filename: ', OutputFilename
-		
-		fileOut = open(OutputFilename, 'wb')
-		pickle.dump([sampler.chain, sampler.flatchain, sampler.lnprobability, sampler.flatlnprobability], fileOut)
-		fileOut.close()	
+	import pickle
+	fileOut = open(OutputFilename, 'wb')
+	pickle.dump([sampler.chain, sampler.flatchain, sampler.lnprobability, sampler.flatlnprobability], fileOut)
+	fileOut.close()	
+
+	return OutputFilename, ParamSymbol, ParameterNames, Data, PhotometricParameters, PhotometricParameterNames, SpitzerProfile
+
+
+
+
