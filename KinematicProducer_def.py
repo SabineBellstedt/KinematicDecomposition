@@ -254,22 +254,47 @@ def lnlike(theta, Parameters, Data, PhotometricParameters, PhotometricParameterN
 		raise ValueError("Observed bulge sersic index not provided, and has not been set as a free parameter. ")
 
 	ellipticity_bulge = theta[np.where(Parameters == 'BulgeEllipticity')]
+	if len(ellipticity_bulge) == 0:
+		raise ValueError("Bulge ellipticity must be set free, even if fitting to the overall observed ellipticity. ")
 
 	if 'BulgeVelocity' in Parameters:
-		BulgeRotationScale = np.array(theta)[np.where(Parameters == 'BulgeRotationScale')]
 		Max_vel_bulge = np.array(theta)[np.where(Parameters == 'BulgeVelocity')]
+		if 'BulgeRotationScale' in Parameters:
+			BulgeRotationScale = np.array(theta)[np.where(Parameters == 'BulgeRotationScale')]
+		else:
+			BulgeRotationScale = 1 # remove the ability for this parameter to be free. 
 	elif 'BulgeRotationScale' in Parameters:
 		raise ValueError("bulge rotation scale given, but not bulge rotational velocity. Check which values are included. ")
 	else:
 		BulgeRotationScale = 0
 		Max_vel_bulge = 0
-	Re_Bulge = np.array(theta)[np.where(Parameters == 'BulgeSize')]
+
 	CentralBulgeDispersion = np.array(theta)[np.where(Parameters == 'BulgeDispersion')]
+	if len(CentralBulgeDispersion) == 0:
+		raise ValueError("Bulge dispersion must be set free. ")
+	
 	alpha_Bulge = np.array(theta)[np.where(Parameters == 'BulgeDispersionDropOff')]
+	if len(alpha_Bulge) == 0:
+		raise ValueError("Bulge dispersion drop off must be set free. ")
+	
 	log_I_Disc = np.array(theta)[np.where(Parameters == 'DiscIntensity')]
+	if len(log_I_Disc) == 0:
+		raise ValueError("Disc intensity must be set free. ")
+	
 	Re_Disc = np.array(theta)[np.where(Parameters == 'DiscSize')]
-	DiscRotationScale = np.array(theta)[np.where(Parameters == 'DiscRotationScale')]
+	if len(Re_Disc) == 0:
+		raise ValueError("Disc effective radius must be set free. ")
+	
+	if 'DiscRotationScale' in Parameters:
+		DiscRotationScale = np.array(theta)[np.where(Parameters == 'DiscRotationScale')]
+	else:
+		DiscRotationScale = 1 # remove the ability for this parameter to be free
+	# if len(DiscRotationScale) == 0:
+	# 	raise ValueError("Disc rotation scale must be set free. ")
+	
 	Max_vel_disc = np.array(theta)[np.where(Parameters == 'DiscVelocity')]
+	if len(Max_vel_disc) == 0:
+		raise ValueError("Disc rotation velocity must be set free. ")
 
 	if 'DiscDispersion' in Parameters:
 		CentralDiscDispersion = np.array(theta)[np.where(Parameters == 'DiscDispersion')]
@@ -296,9 +321,13 @@ def lnlike(theta, Parameters, Data, PhotometricParameters, PhotometricParameterN
 		ObservedEllipticity = np.array(PhotometricParameters)[np.where(PhotometricParameterNames == 'ObservedEllipticity')]
 		EffectiveRadius = np.array(PhotometricParameters)[np.where(PhotometricParameterNames == 'ObservedEllipticity')]
 
+		Radius_ellipticityTest = np.arange(0, int(EffectiveRadius), 1)
 		BulgeIntensity_ellipticityTest = BulgeIntensityFunction(log_I_Bulge, EffectiveRadius, Re_Bulge, n)
 		DiscIntensity_ellipticityTest = DiscIntensityFunction(log_I_Disc, EffectiveRadius, Re_Disc)
+		# rather than calculating the B/D at 1 Re, it should perhaps be calculated within Re....
 		
+		# BulgeFraction_ellipticityTest = np.sum(BulgeIntensity_ellipticityTest) / (np.sum(BulgeIntensity_ellipticityTest) + np.sum(DiscIntensity_ellipticityTest))
+		# DiscFraction_ellipticityTest = np.sum(DiscIntensity_ellipticityTest) / (np.sum(BulgeIntensity_ellipticityTest) + np.sum(DiscIntensity_ellipticityTest))
 		BulgeFraction_ellipticityTest = BulgeIntensity_ellipticityTest / (BulgeIntensity_ellipticityTest + DiscIntensity_ellipticityTest)
 		DiscFraction_ellipticityTest = DiscIntensity_ellipticityTest / (BulgeIntensity_ellipticityTest + DiscIntensity_ellipticityTest)
 		
@@ -320,7 +349,7 @@ def lnlike(theta, Parameters, Data, PhotometricParameters, PhotometricParameterN
 			Spitzer_Radius = np.array(SpitzerProfile[0])
 			Spitzer_Mag = np.array(SpitzerProfile[1])
 			Spitzer_MagErr = np.array(SpitzerProfile[2])
-		
+
 			ModelMagProfile = -2.5*np.log10(BulgeIntensityFunction(log_I_Bulge, Spitzer_Radius, Re_Bulge, n) + \
 				DiscIntensityFunction(log_I_Disc, Spitzer_Radius, Re_Disc))
 			realChi2_lum = np.sum(np.log(2*np.pi*Spitzer_MagErr**2/LuminosityWeight) + (LuminosityWeight*(Spitzer_Mag - ModelMagProfile)/Spitzer_MagErr)**2.) 
@@ -485,7 +514,7 @@ def mainCall_modular(pathName, MagneticumPathName, GalName, \
 		Data = [X, Y, Vel_Observed, VelErr_Observed, VelDisp_Observed, VelDispErr_Observed]
 
 	if GlobularClusters:
-		X_GC, Y_GC, Vel_GC, VelErr_GC = np.loadtxt(pathName+str(GalName)+'/GC_RVs_'+str(GalName)+'.txt')
+		X_GC, Y_GC, Vel_GC, VelErr_GC = np.loadtxt(pathName+str(GalName)+'/GC_RVs_'+str(GalName)+'.txt', unpack = True)
 		Data.append(X_GC)
 		Data.append(Y_GC)
 		Data.append(Vel_GC)
@@ -498,10 +527,10 @@ def mainCall_modular(pathName, MagneticumPathName, GalName, \
 	ndim = 0
 	LowerBounds, UpperBounds, PriorType, ParameterNames, ParamSymbol = [], [], [], [], []
 	# selecting all possible free parameters, with their prior bounds:
-	if BulgeIntensity: # log bulge I
+	if BulgeIntensity: # log bulge I, the luminosity at the effective radius of the bulge
 		ndim += 1
-		LowerBounds.append(-3)
-		UpperBounds.append(7)
+		LowerBounds.append(-6)
+		UpperBounds.append(-4)
 		PriorType.append('uniform')
 		ParameterNames.append('BulgeIntensity')
 		ParamSymbol.append(r"$\log(I_b)$")
@@ -543,7 +572,7 @@ def mainCall_modular(pathName, MagneticumPathName, GalName, \
 	if BulgeDispersion:
 		ndim += 1
 		LowerBounds.append(0)
-		UpperBounds.append(300)
+		UpperBounds.append(400)
 		PriorType.append('uniform')
 		ParameterNames.append('BulgeDispersion')
 		ParamSymbol.append(r"$\sigma_{c,b}$")
@@ -555,24 +584,24 @@ def mainCall_modular(pathName, MagneticumPathName, GalName, \
 		ParameterNames.append('BulgeDispersionDropOff')
 		ParamSymbol.append(r"$\alpha_b$")
 		
-	if DiscIntensity: # log disc I
+	if DiscIntensity: # log disc I, calculated at 1/1.678 of the effective radius (the scale radius h)
 		ndim += 1
 		LowerBounds.append(-8)
-		UpperBounds.append(2)
+		UpperBounds.append(-5)
 		PriorType.append('uniform')
 		ParameterNames.append('DiscIntensity')
 		ParamSymbol.append(r"$\log(I_d)$")
 	if DiscSize:
 		ndim += 1
-		LowerBounds.append(0)
-		UpperBounds.append(100)
+		LowerBounds.append(10) # if the disc should be suppressed, it should instead be suppressed via the intensity. The size should always be finite. 
+		UpperBounds.append(150)
 		PriorType.append('uniform')
 		ParameterNames.append('DiscSize')
 		ParamSymbol.append(r"$R_{e,d}$")
 	if DiscEllipticity:
 		ndim += 1		 	 			# the only reason why this would be round, is because a disc is fairly inclined. 
 		LowerBounds.append(0.5)  		# it might therefore be worth thinking about whether this value and the maximum
-		UpperBounds.append(0.95)  		# rotational velocity should be linked, such that if the disc is very round, then 
+		UpperBounds.append(0.9)  		# rotational velocity should be linked, such that if the disc is very round, then 
 		PriorType.append('uniform') 	# one won't see it rotating...
 		ParameterNames.append('DiscEllipticity')
 		ParamSymbol.append(r"$\epsilon_d$")
@@ -660,18 +689,27 @@ def mainCall_modular(pathName, MagneticumPathName, GalName, \
 
 	if Photometry:
 
-		EffectiveRadius = Reff_Spitzer[GalName]
-		ObservedEllipticity = 1 - b_a[GalName]
-		n_bulge = SersicIndex_Bulge[GalName]
-		Re_Bulge = EffectiveRadius_Bulge[GalName]
-		mag_Bulge = MagnitudeRe_Bulge[GalName]
-		Spitzer_Radius, Spitzer_Mag, Spitzer_MagErr = SpitzerMagProfileFinder(GalName, 'SpitzerProfiles/') # I haven't yet done a thorough check on the impact of using a Spitzer lumiosity
-																						   # profile, but using an optical magnitude for a previous photometric decomposition. 
-																						   # My assumption here is that the impact is negligible. 
-		PhotometricParameters = [EffectiveRadius, ObservedEllipticity, n_bulge, Re_Bulge, mag_Bulge]
-	
-		PhotometricParameterNames = ['EffectiveRadius', 'ObservedEllipticity', 'BulgeSersicIndex', 'BulgeSize', 'BulgeMagnitude']
+		try:
+			EffectiveRadius = Reff_Spitzer[GalName]
+			ObservedEllipticity = 1 - b_a[GalName]
+			n_bulge = SersicIndex_Bulge[GalName]
+			Re_Bulge = EffectiveRadius_Bulge[GalName]
+			mag_Bulge = MagnitudeRe_Bulge[GalName]
 
+			PhotometricParameters = [EffectiveRadius, ObservedEllipticity, n_bulge, Re_Bulge, mag_Bulge]
+			PhotometricParameterNames = ['EffectiveRadius', 'ObservedEllipticity', 'BulgeSersicIndex', 'BulgeSize', 'BulgeMagnitude']
+		except:
+			print 'bulge photometric parameters not defined'
+
+			EffectiveRadius = Reff_Spitzer[GalName]
+			ObservedEllipticity = 1 - b_a[GalName]
+
+			PhotometricParameters = [EffectiveRadius, ObservedEllipticity]
+			PhotometricParameterNames = ['EffectiveRadius', 'ObservedEllipticity']
+		
+		Spitzer_Radius, Spitzer_Mag, Spitzer_MagErr = SpitzerMagProfileFinder(GalName, 'SpitzerProfiles/') # I haven't yet done a thorough check on the impact of using a Spitzer lumiosity
+																							   # profile, but using an optical magnitude for a previous photometric decomposition. 
+																							   # My assumption here is that the impact is negligible. 
 		SpitzerProfile = [Spitzer_Radius, Spitzer_Mag, Spitzer_MagErr]
 
 	else:
